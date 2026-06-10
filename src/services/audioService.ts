@@ -2,9 +2,9 @@ import type { Track } from '../store/playerStore';
 import { useSettingsStore } from '../store/settingsStore';
 
 const INSTANCES = [
+  'https://api.piped.private.coffee',
   'https://pipedapi.kavin.rocks',
-  'https://pipedapi.syncpundit.io',
-  'https://pipedapi.adminforge.de',
+  'https://pipedapi-libre.kavin.rocks',
 ];
 
 const BITRATE_LIMITS: Record<string, number> = {
@@ -30,11 +30,17 @@ interface PipedSearchItem {
 
 interface PipedStreamResponse {
   audioStreams: PipedAudioStream[];
+  videoStreams: PipedVideoStream[];
 }
 
 interface PipedAudioStream {
   url: string;
   bitrate: number;
+}
+
+interface PipedVideoStream {
+  url: string;
+  quality: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -84,21 +90,28 @@ export async function getStreamUrl(videoId: string): Promise<string> {
   const path = `/streams/${encodeURIComponent(videoId)}`;
   const data = await fetchFromInstances<PipedStreamResponse>(path);
   const streams = data.audioStreams ?? [];
-  if (streams.length === 0) {
-    throw new Error(`No audio streams found for video ${videoId}`);
+
+  if (streams.length > 0) {
+    const quality = useSettingsStore.getState().audioQuality;
+    const maxBitrate = BITRATE_LIMITS[quality];
+
+    const candidates = streams.filter(s => s.bitrate <= maxBitrate);
+    if (candidates.length === 0) {
+      streams.sort((a, b) => a.bitrate - b.bitrate);
+      return streams[0].url;
+    }
+
+    candidates.sort((a, b) => b.bitrate - a.bitrate);
+    return candidates[0].url;
   }
 
-  const quality = useSettingsStore.getState().audioQuality;
-  const maxBitrate = BITRATE_LIMITS[quality];
-
-  const candidates = streams.filter(s => s.bitrate <= maxBitrate);
-  if (candidates.length === 0) {
-    streams.sort((a, b) => a.bitrate - b.bitrate);
-    return streams[0].url;
+  // Fallback: use the first video stream (contains audio track)
+  const videoStreams = data.videoStreams ?? [];
+  if (videoStreams.length > 0) {
+    return videoStreams[0].url;
   }
 
-  candidates.sort((a, b) => b.bitrate - a.bitrate);
-  return candidates[0].url;
+  throw new Error(`No streams found for video ${videoId}`);
 }
 
 export async function resolveTrack(track: Track): Promise<Track> {
