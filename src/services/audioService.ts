@@ -1,11 +1,11 @@
 import type { Track } from '../store/playerStore';
-import { useSettingsStore } from '../store/settingsStore';
+import { useSettingsStore, DEFAULT_PIPED_INSTANCE } from '../store/settingsStore';
 
-const INSTANCES = [
-  'https://api.piped.private.coffee',
-  'https://pipedapi.kavin.rocks',
-  'https://pipedapi-libre.kavin.rocks',
-];
+// As of mid-2026, api.piped.private.coffee is the only surviving Piped instance.
+// It does not return audio-only streams, but does return a YouTube videoplayback
+// URL (360p video+audio) via its proxy for every video. We use that as the audio source.
+// The instance URL is configurable in Settings (pipedInstance).
+const INSTANCES = [DEFAULT_PIPED_INSTANCE];
 
 const BITRATE_LIMITS: Record<string, number> = {
   low: 64000,
@@ -67,8 +67,14 @@ function mapSearchItem(item: PipedSearchItem): Track {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 async function fetchFromInstances<T>(path: string): Promise<T> {
+  const settings = useSettingsStore.getState();
+  const custom = settings.pipedInstance?.trim();
+  const bases = custom && custom !== DEFAULT_PIPED_INSTANCE
+    ? [custom, ...INSTANCES]
+    : INSTANCES;
+
   const errors: string[] = [];
-  for (const base of INSTANCES) {
+  for (const base of bases) {
     try {
       const res = await fetch(`${base}${path}`);
       if (res.ok) return (await res.json()) as T;
@@ -105,8 +111,14 @@ export async function getStreamUrl(videoId: string): Promise<string> {
     return candidates[0].url;
   }
 
-  // Fallback: use the first video stream (contains audio track)
+  // Fallback: use a video stream as audio source
   const videoStreams = data.videoStreams ?? [];
+
+  // Prefer the actual YouTube videoplayback URL (itag=18 etc.) over LBRY streams
+  const ytStream = videoStreams.find(s => s.url.includes('googlevideo.com') || s.url.includes('videoplayback'));
+  if (ytStream) return ytStream.url;
+
+  // Fall back to any other video stream
   if (videoStreams.length > 0) {
     return videoStreams[0].url;
   }

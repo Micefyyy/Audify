@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSettingsStore } from '../store/settingsStore';
+import { useSettingsStore, DEFAULT_PIPED_INSTANCE } from '../store/settingsStore';
 import type { AudioQuality } from '../store/settingsStore';
 
 const qualityLabels: Record<AudioQuality, string> = {
@@ -15,6 +15,7 @@ export default function SettingsPage() {
     downloadOnWifi, setDownloadOnWifi,
     crossfadeDuration, setCrossfadeDuration,
     equalizerPreset, setEqualizerPreset,
+    pipedInstance, setPipedInstance,
   } = useSettingsStore();
 
   const [qualityOpen, setQualityOpen] = useState(false);
@@ -98,6 +99,31 @@ export default function SettingsPage() {
             <option key={p} value={p}>{p}</option>
           ))}
         </select>
+      </div>
+
+      {/* ── Piped Instance ──────────────────────────────────────────────────── */}
+      <div className="py-3 border-b border-white/5 space-y-2">
+        <div className="flex justify-between items-center">
+          <span className="text-text-primary text-sm">Piped Instance</span>
+          {pipedInstance !== DEFAULT_PIPED_INSTANCE && (
+            <button
+              onClick={() => setPipedInstance(DEFAULT_PIPED_INSTANCE)}
+              className="text-accent text-xs"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <input
+          type="url"
+          value={pipedInstance}
+          onChange={e => setPipedInstance(e.target.value)}
+          placeholder={DEFAULT_PIPED_INSTANCE}
+          className="w-full bg-bg-surface text-text-primary text-sm rounded-xl px-3 py-2 border border-white/5 outline-none focus:border-accent transition-colors"
+        />
+        <p className="text-text-muted text-xs leading-relaxed">
+          API URL of a Piped instance. Uses <code className="text-accent/80">{DEFAULT_PIPED_INSTANCE}</code> by default.
+        </p>
       </div>
     </div>
   );

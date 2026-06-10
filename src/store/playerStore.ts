@@ -87,10 +87,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
       const newHowl = new Howl({
         src: [resolved.audioUrl],
+        format: ['mp4', 'aac', 'webm'],
         html5: true,
         volume: s.volume,
         onend: () => get().skipNext(),
+        onloaderror: (_id: number, err: unknown) => {
+          set({
+            error: `Playback error: ${err instanceof Error ? err.message : 'Failed to load audio'}`,
+            isLoading: false,
+            isPlaying: false,
+          });
+        },
         onplay: () => {
+          set({ isLoading: false, isPlaying: true });
           const tick = () => {
             const h = get().howl;
             if (!h) return;
@@ -105,8 +114,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       newHowl.play();
       set({
         currentTrack: resolved,
-        isLoading: false,
-        isPlaying: true,
         progress: 0,
         howl: newHowl,
       });
