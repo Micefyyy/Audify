@@ -13,31 +13,19 @@ jobs:
       - run: npx cap add ios
       - run: npx cap sync ios
       - run: |
-          cat > ios/App/exportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>development</string>
-              <key>signingStyle</key>
-              <string>automatic</string>
-          </dict>
-          </plist>
-          EOF
-      - run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild archive \
+            -workspace App.xcworkspace \
             -scheme App \
             -sdk iphoneos \
             -configuration Release \
             -archivePath $RUNNER_TEMP/App.xcarchive \
-            archive
-          xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
-            -exportPath $RUNNER_TEMP/ipa \
-            -exportOptionsPlist exportOptions.plist
+            CODE_SIGNING_ALLOWED=NO
+          mkdir -p $RUNNER_TEMP/Payload
+          cp -r "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" "$RUNNER_TEMP/Payload/"
+          cd $RUNNER_TEMP
+          zip -r Audify.ipa Payload
       - uses: actions/upload-artifact@v4
         with:
           name: Audify.ipa
-          path: ${{ runner.temp }}/ipa/*.ipa
+          path: ${{ runner.temp }}/Audify.ipa
