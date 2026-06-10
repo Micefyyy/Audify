@@ -10,7 +10,7 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run build
-      - run: npx cap add ios --skip-install
+      - run: npx cap add ios
       - run: npx cap sync ios
       - run: |
           cat > ios/App/exportOptions.plist << 'EOF'
