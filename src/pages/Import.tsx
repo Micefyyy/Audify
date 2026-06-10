@@ -205,7 +205,7 @@ export default function ImportPage() {
       {selected === 'spotify' && status === 'loading' && !callbackUrl && (
         <div className="space-y-3">
           <p className="text-text-secondary text-sm">
-            Authorize in the opened window, then paste the full redirect URL below.
+            After authorizing, you'll be redirected to a page that says "This site can't be reached" — copy the full URL from your browser's address bar and paste it below.
           </p>
           <input
             value={callbackUrl}
@@ -218,7 +218,7 @@ export default function ImportPage() {
             disabled={!callbackUrl.trim()}
             className="w-full bg-accent text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.98] transition-transform"
           >
-            Continue
+            Fetch Playlist
           </button>
           <button
             onClick={() => { setStatus('idle'); setCallbackUrl(''); }}

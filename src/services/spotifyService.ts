@@ -10,7 +10,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-const CLIENT_ID = ''; // ← Paste your Spotify Client ID here
+const CLIENT_ID = ''; // ← Paste your Spotify Client ID here (get one free at developer.spotify.com)
 const REDIRECT_URI = 'http://localhost';
 const SCOPES = ['playlist-read-private', 'playlist-read-collaborative'];
 
@@ -41,6 +41,11 @@ export function getCodeVerifier(): string {
 }
 
 export async function initiateSpotifyAuth(): Promise<void> {
+  if (!CLIENT_ID) throw new Error(
+    'Set your Spotify Client ID in src/services/spotifyService.ts ' +
+    '(get one free at https://developer.spotify.com/dashboard)',
+  );
+
   _codeVerifier = generateCodeVerifier();
   const challenge = await generateCodeChallenge(_codeVerifier);
 
