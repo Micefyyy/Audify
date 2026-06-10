@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://rsms.me/inter/inter.css');
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+    background-color: #0A0A0A;
+    color: #F2F2F2;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .safe-top    { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left   { padding-left: env(safe-area-inset-left); }
+  .safe-right  { padding-right: env(safe-area-inset-right); }
+
+  .glass {
+    background: rgba(20, 20, 20, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .gradient-mask-b {
+    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  }
+}
