@@ -1,4 +1,4 @@
-import { MediaSession, MediaSessionPlaybackState } from '@jofr/capacitor-media-session';
+import { MediaSession } from '@jofr/capacitor-media-session';
 import { usePlayerStore } from '../store/playerStore';
 import type { Track } from '../store/playerStore';
 
@@ -38,12 +38,15 @@ export async function updateNowPlaying(
       title: track.title,
       artist: track.artist,
       album: track.album,
-      artwork: track.artwork,
+      artwork: [{ src: track.artwork }],
+    });
+    await MediaSession.setPlaybackState({
+      playbackState: isPlaying ? 'playing' : 'paused',
+    });
+    await MediaSession.setPositionState({
       duration: track.duration,
-      elapsedPlaybackTime: progress * track.duration,
-      playbackState: isPlaying
-        ? MediaSessionPlaybackState.PLAYING
-        : MediaSessionPlaybackState.PAUSED,
+      position: progress * track.duration,
+      playbackRate: 1,
     });
   } catch {
     // silently fail
@@ -52,9 +55,8 @@ export async function updateNowPlaying(
 
 export async function clearNowPlaying(): Promise<void> {
   try {
-    await MediaSession.setMetadata({
-      playbackState: MediaSessionPlaybackState.NONE,
-    });
+    await MediaSession.setPlaybackState({ playbackState: 'none' });
+    await MediaSession.setMetadata({});
   } catch {
     // silently fail
   }
