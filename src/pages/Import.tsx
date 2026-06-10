@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Music, Apple, Link2, FileJson, CheckCircle2, Loader2 } from 'lucide-react';
 import { searchTracks } from '../services/audioService';
-import { importFile } from '../services/fileImportService';
+import { importFile, parseM3U, parseJSON } from '../services/fileImportService';
 import { useHaptics } from '../hooks/useHaptics';
 import {
   initiateSpotifyAuth,
@@ -21,17 +21,45 @@ interface ImportResult {
   platform: Platform;
 }
 
-async function importFromAppleUrl(_url: string): Promise<ImportResult> {
-  await new Promise(r => setTimeout(r, 1800));
-  return { name: 'My Apple Playlist', trackCount: 21, platform: 'apple' };
-}
-
 const sources: { id: Platform; label: string; icon: typeof Music; hint: string }[] = [
   { id: 'spotify', icon: Music,  label: 'Spotify',     hint: 'Paste a Spotify playlist link' },
-  { id: 'apple',   icon: Apple,  label: 'Apple Music', hint: 'Paste an Apple Music playlist link' },
-  { id: 'url',     icon: Link2,  label: 'Any URL',     hint: 'Works with YouTube Music, Tidal, etc.' },
+  { id: 'apple',   icon: Apple,  label: 'Apple Music', hint: 'Not yet supported' },
+  { id: 'url',     icon: Link2,  label: 'Any URL',     hint: 'Paste a JSON or M3U playlist URL' },
   { id: 'file',    icon: FileJson,label: 'JSON / M3U',  hint: 'Import an exported playlist file' },
 ];
+
+async function matchAndSave(
+  playlistName: string,
+  tracks: { title: string; artist: string }[],
+  platform: Platform,
+  createPlaylist: (name: string) => string,
+  addToPlaylist: (id: string, track: Track) => void,
+  onProgress: (matched: number, total: number) => void,
+): Promise<ImportResult> {
+  const total = tracks.length;
+  onProgress(0, total);
+
+  const playlistId = createPlaylist(playlistName);
+  let matched = 0;
+  for (const track of tracks) {
+    try {
+      const q = `${track.title} ${track.artist}`.trim();
+      if (q) {
+        const results = await searchTracks(q);
+        const best = results[0];
+        if (best) {
+          addToPlaylist(playlistId, { ...best, source: 'stream' });
+          matched++;
+        }
+      }
+    } catch {
+      // skip unmatched tracks silently
+    }
+    onProgress(matched, total);
+  }
+
+  return { name: playlistName, trackCount: matched, platform };
+}
 
 export default function ImportPage() {
   const [selected, setSelected] = useState<Platform | null>(null);
@@ -61,32 +89,22 @@ export default function ImportPage() {
       return;
     }
 
+    if (selected === 'apple') {
+      setStatus('error');
+      return;
+    }
+
     if (selected === 'file') {
       if (!selectedFile) return;
       setStatus('loading');
       try {
         const playlist = await importFile(selectedFile);
-        const total = playlist.tracks.length;
-        setProgress({ matched: 0, total });
-
-        const playlistId = createPlaylist(playlist.name);
-        let matched = 0;
-        for (const track of playlist.tracks) {
-          try {
-            const q = `${track.title} ${track.artist}`.trim();
-            const results = await searchTracks(q);
-            const best = results[0];
-            if (best) {
-              addToPlaylist(playlistId, { ...best, source: 'stream' });
-              matched++;
-            }
-          } catch {
-            // skip unmatched tracks silently
-          }
-          setProgress({ matched, total });
-        }
-
-        setResult({ name: playlist.name, trackCount: matched, platform: 'file' });
+        const r = await matchAndSave(
+          playlist.name, playlist.tracks, 'file',
+          createPlaylist, addToPlaylist,
+          (m, t) => setProgress({ matched: m, total: t }),
+        );
+        setResult(r);
         haptics.success();
         setStatus('success');
       } catch {
@@ -95,11 +113,26 @@ export default function ImportPage() {
       return;
     }
 
+    // URL import — fetch the URL and try to parse it
     setStatus('loading');
     try {
-      let r: ImportResult;
-      if (selected === 'apple') r = await importFromAppleUrl(input);
-      else r = { name: 'Imported Playlist', trackCount: 0, platform: selected };
+      const res = await fetch(input);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const name = 'Imported Playlist';
+
+      let tracks: { title: string; artist: string }[];
+      if (input.endsWith('.m3u') || input.endsWith('.m3u8') || text.startsWith('#EXTM3U')) {
+        tracks = parseM3U(text);
+      } else {
+        tracks = parseJSON(text);
+      }
+
+      const r = await matchAndSave(
+        name, tracks, 'url',
+        createPlaylist, addToPlaylist,
+        (m, t) => setProgress({ matched: m, total: t }),
+      );
       setResult(r);
       haptics.success();
       setStatus('success');
@@ -117,29 +150,13 @@ export default function ImportPage() {
       const token = await exchangeCodeForToken(code, getCodeVerifier());
 
       const playlist = await fetchSpotifyPlaylist(input, token);
-      const total = playlist.tracks.length;
-      setProgress({ matched: 0, total });
 
-      const playlistId = createPlaylist(playlist.name);
-
-      let matched = 0;
-      for (const spotifyTrack of playlist.tracks) {
-        try {
-          const q = `${spotifyTrack.title} ${spotifyTrack.artist}`;
-          const results = await searchTracks(q);
-          const best = results[0];
-          if (best) {
-            const track: Track = { ...best, source: 'stream' };
-            addToPlaylist(playlistId, track);
-            matched++;
-          }
-        } catch {
-          // skip unmatched tracks silently
-        }
-        setProgress({ matched, total });
-      }
-
-      setResult({ name: playlist.name, trackCount: matched, platform: 'spotify' });
+      const r = await matchAndSave(
+        playlist.name, playlist.tracks, 'spotify',
+        createPlaylist, addToPlaylist,
+        (m, t) => setProgress({ matched: m, total: t }),
+      );
+      setResult(r);
       haptics.success();
       setStatus('success');
     } catch {
@@ -159,12 +176,12 @@ export default function ImportPage() {
         {sources.map(({ id, icon: Icon, label, hint }) => (
           <button
             key={id}
-            onClick={() => { setSelected(id); setStatus('idle'); setCallbackUrl(''); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); }}
+            onClick={() => { setSelected(id); setStatus('idle'); setCallbackUrl(''); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); setInput(''); }}
             className={`flex flex-col gap-2 p-4 rounded-2xl border text-left transition-all ${
               selected === id
                 ? 'border-accent bg-accent/10 text-text-primary'
                 : 'border-white/5 bg-bg-surface text-text-secondary'
-            }`}
+            } ${id === 'apple' ? 'opacity-50' : ''}`}
           >
             <Icon size={20} className={selected === id ? 'text-accent' : ''} />
             <span className="font-semibold text-sm">{label}</span>
@@ -176,11 +193,16 @@ export default function ImportPage() {
       {/* Input area */}
       {selected && status !== 'success' && status !== 'loading' && !callbackUrl && (
         <div className="space-y-3">
-          {(selected === 'spotify' || selected === 'apple' || selected === 'url') && (
+          {selected === 'apple' && (
+            <p className="text-text-muted text-sm text-center py-4">
+              Apple Music import requires an Apple Developer account — coming in a future update.
+            </p>
+          )}
+          {(selected === 'spotify' || selected === 'url') && (
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="Paste link here…"
+              placeholder={selected === 'url' ? 'https://example.com/playlist.json' : 'https://open.spotify.com/playlist/...'}
               className="w-full bg-bg-surface border border-white/5 rounded-2xl px-4 py-3 text-text-primary placeholder:text-text-muted text-sm outline-none focus:border-accent/60 transition-colors"
             />
           )}
@@ -191,14 +213,21 @@ export default function ImportPage() {
               <input type="file" accept=".json,.m3u,.m3u8" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) { setInput(f.name); setSelectedFile(f); } }} />
             </label>
           )}
-          <button
-            onClick={handleImport}
-            disabled={!input}
-            className="w-full bg-accent text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.98] transition-transform"
-          >
-            Import Playlist
-          </button>
+          {selected !== 'apple' && (
+            <button
+              onClick={handleImport}
+              disabled={!input}
+              className="w-full bg-accent text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.98] transition-transform"
+            >
+              Import Playlist
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Apple Music "not supported" from the button click too */}
+      {selected === 'apple' && status === 'error' && !callbackUrl && (
+        <p className="text-text-muted text-sm text-center">Apple Music import is not yet available.</p>
       )}
 
       {/* Spotify callback URL input (shown after auth window opens) */}
@@ -251,7 +280,7 @@ export default function ImportPage() {
         </div>
       )}
 
-      {status === 'error' && (
+      {status === 'error' && selected !== 'apple' && (
         <p className="text-error text-sm text-center">Import failed — check the link and try again.</p>
       )}
     </div>
