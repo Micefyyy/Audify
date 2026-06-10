@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Howl } from 'howler';
-import { resolveTrack } from '../services/audioService';
+import { resolveTrack, getCachedTrack, preresolveTrack } from '../services/audioService';
 import { fetchLyrics } from '../services/lyricsService';
 import { isDownloaded, getLocalTrackUri } from '../services/downloadService';
 import { updateNowPlaying, clearNowPlaying } from '../services/nowPlayingService';
@@ -48,6 +48,54 @@ interface PlayerState {
   setProgress: (p: number) => void;
 }
 
+function initHowl(
+  set: (partial: Partial<PlayerState> | ((s: PlayerState) => Partial<PlayerState>)) => void,
+  get: () => PlayerState,
+  resolved: Track,
+) {
+  const { volume } = get();
+  const newHowl = new Howl({
+    src: [resolved.audioUrl],
+    format: ['mp4', 'aac', 'webm'],
+    html5: true,
+    volume,
+    onend: () => get().skipNext(),
+    onloaderror: (_id: number, err: unknown) => {
+      set({
+        error: `Playback error: ${err instanceof Error ? err.message : 'Failed to load audio'}`,
+        isLoading: false,
+        isPlaying: false,
+      });
+    },
+    onplay: () => {
+      set({ isLoading: false, isPlaying: true });
+      const tick = () => {
+        const h = get().howl;
+        if (!h) return;
+        const dur = h.duration() || 1;
+        set({ progress: (h.seek() as number) / dur });
+        if (get().isPlaying) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    },
+  });
+
+  newHowl.play();
+  set({
+    currentTrack: resolved,
+    progress: 0,
+    howl: newHowl,
+  });
+
+  fetchLyrics(resolved.title, resolved.artist).then(lyrics => {
+    if (!lyrics) return;
+    const cur = get();
+    if (cur.currentTrack?.id === resolved.id) {
+      set({ currentTrack: { ...cur.currentTrack!, lyrics } });
+    }
+  });
+}
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTrack: null,
   queue: [],
@@ -78,53 +126,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       queueIndex: newIndex,
     });
 
-    (isDownloaded(trackId).then(downloaded => {
-      if (downloaded) return getLocalTrackUri(trackId).then(uri => ({ ...track, audioUrl: uri }));
-      return resolveTrack(track);
-    })).then(resolved => {
+    const cached = getCachedTrack(track);
+    if (cached && !cached.audioUrl.startsWith('piped:')) {
+      initHowl(set, get, cached);
+      return;
+    }
+
+    isDownloaded(trackId).then(downloaded => {
+      if (downloaded) return getLocalTrackUri(trackId);
+      return preresolveTrack(track).then(t => t.audioUrl);
+    }).then(audioUrl => {
       const s = get();
       if (!s.isLoading) return;
-
-      const newHowl = new Howl({
-        src: [resolved.audioUrl],
-        format: ['mp4', 'aac', 'webm'],
-        html5: true,
-        volume: s.volume,
-        onend: () => get().skipNext(),
-        onloaderror: (_id: number, err: unknown) => {
-          set({
-            error: `Playback error: ${err instanceof Error ? err.message : 'Failed to load audio'}`,
-            isLoading: false,
-            isPlaying: false,
-          });
-        },
-        onplay: () => {
-          set({ isLoading: false, isPlaying: true });
-          const tick = () => {
-            const h = get().howl;
-            if (!h) return;
-            const dur = h.duration() || 1;
-            set({ progress: (h.seek() as number) / dur });
-            if (get().isPlaying) requestAnimationFrame(tick);
-          };
-          requestAnimationFrame(tick);
-        },
-      });
-
-      newHowl.play();
-      set({
-        currentTrack: resolved,
-        progress: 0,
-        howl: newHowl,
-      });
-
-      fetchLyrics(resolved.title, resolved.artist).then(lyrics => {
-        if (!lyrics) return;
-        const s = get();
-        if (s.currentTrack?.id === resolved.id) {
-          set({ currentTrack: { ...s.currentTrack!, lyrics } });
-        }
-      });
+      initHowl(set, get, { ...track, audioUrl });
     }).catch(err => {
       const s = get();
       if (!s.isLoading) return;

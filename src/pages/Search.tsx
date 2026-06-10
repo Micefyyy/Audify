@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search as SearchIcon } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
-import { searchTracks } from '../services/audioService';
+import { searchTracks, preresolveTracks } from '../services/audioService';
 import { useHaptics } from '../hooks/useHaptics';
 import type { Track } from '../store/playerStore';
 
@@ -84,6 +84,7 @@ export default function SearchPage() {
         if (queryRef.current === q) {
           setResults(tracks);
           setSearched(true);
+          preresolveTracks(tracks);
         }
       } catch (err) {
         if (queryRef.current === q) {

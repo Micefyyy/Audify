@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Music, Heart, Download, Check, X } from 'lucide-react';
 import type { Track } from '../store/playerStore';
@@ -6,6 +6,7 @@ import type { Playlist } from '../store/libraryStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useHaptics } from '../hooks/useHaptics';
+import { preresolveTracks } from '../services/audioService';
 
 // ── Shared components ───────────────────────────────────────────────────────
 
@@ -91,6 +92,10 @@ export default function LibraryPage() {
 
   const { likedSongs, playlists, createPlaylist } = useLibraryStore();
   const play = usePlayerStore(s => s.play);
+
+  useEffect(() => {
+    if (tab === 'liked') preresolveTracks(likedSongs);
+  }, [tab, likedSongs]);
 
   function handleCreate() {
     const name = newName.trim();

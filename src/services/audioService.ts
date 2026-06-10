@@ -64,6 +64,39 @@ function mapSearchItem(item: PipedSearchItem): Track {
   };
 }
 
+// ── Pre-resolution cache (for synchronous playback on iOS) ─────────────────
+
+const streamCache = new Map<string, string>();
+
+export function getCachedStreamUrl(videoId: string): string | null {
+  return streamCache.get(videoId) ?? null;
+}
+
+export function getCachedTrack(track: Track): Track | null {
+  const url = streamCache.get(track.id);
+  return url ? { ...track, audioUrl: url } : null;
+}
+
+export async function preresolveTrack(track: Track): Promise<Track> {
+  const cached = streamCache.get(track.id);
+  if (cached) return { ...track, audioUrl: cached };
+  const resolved = await resolveTrack(track);
+  streamCache.set(track.id, resolved.audioUrl);
+  return resolved;
+}
+
+export function preresolveTracks(tracks: Track[]): void {
+  for (const track of tracks) {
+    if (!streamCache.has(track.id)) {
+      preresolveTrack(track).catch(() => {});
+    }
+  }
+}
+
+export function clearStreamCache(): void {
+  streamCache.clear();
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 async function fetchFromInstances<T>(path: string): Promise<T> {
