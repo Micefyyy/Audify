@@ -15,41 +15,40 @@ export default function MiniPlayer() {
   };
 
   return (
-    <div className="relative bg-bg-elevated rounded-2xl overflow-hidden shadow-card border border-white/5">
-      {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 h-[2px] bg-accent/30 w-full">
+    <div className="relative bg-bg-elevated rounded-xl overflow-hidden shadow-subtle">
+      <div className="absolute top-0 left-0 h-[2px] bg-white/[0.04] w-full">
         <motion.div
-          className="h-full bg-accent"
+          className="h-full bg-accent/60"
           animate={{ width: `${progress * 100}%` }}
           transition={{ duration: 0.25, ease: 'linear' }}
         />
       </div>
 
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
         <motion.img
           src={currentTrack.artwork}
           alt={currentTrack.album}
           layoutId="track-artwork"
-          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+          className="w-9 h-9 rounded-md object-cover flex-shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <p className="text-text-primary text-sm font-semibold truncate">{currentTrack.title}</p>
-          <p className="text-text-secondary text-xs truncate">
+          <p className="text-text-primary text-sm font-medium truncate">{currentTrack.title}</p>
+          <p className="text-text-secondary text-[11px] truncate">
             {error || currentTrack.artist}
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={handlePlayPause}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-text-primary active:scale-90 transition-transform"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-text-primary hover:bg-white/[0.04] active:scale-90 transition-all"
           >
-            {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+            {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
           </button>
           <button
             onClick={e => { e.stopPropagation(); skipNext(); }}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-text-secondary active:scale-90 transition-transform"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-text-secondary hover:bg-white/[0.04] active:scale-90 transition-all"
           >
-            <SkipForward size={18} />
+            <SkipForward size={16} />
           </button>
         </div>
       </div>

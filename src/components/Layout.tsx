@@ -17,15 +17,13 @@ export default function Layout() {
 
   return (
     <div className="flex flex-col h-full bg-bg-base">
-      {/* Page content */}
       <main className="flex-1 overflow-hidden">
         <Outlet />
       </main>
 
-      {/* Mini player — always in the DOM, shows itself when a track is loaded */}
       <div
         onClick={() => currentTrack && navigate('/now-playing')}
-        className="px-3 pb-1 cursor-pointer"
+        className="px-2 pb-1 cursor-pointer"
       >
         <motion.div
           animate={currentTrack ? { y: 0, opacity: 1 } : { y: 80, opacity: 0 }}
@@ -35,24 +33,31 @@ export default function Layout() {
         </motion.div>
       </div>
 
-      {/* Tab bar */}
-      <nav className="glass border-t border-white/5 safe-bottom">
-        <div className="flex items-center justify-around h-16 px-2">
+      <nav className="bg-bg-surface border-t border-white/[0.04] safe-bottom">
+        <div className="flex items-center justify-around h-14">
           {tabs.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200 ${
-                  isActive
-                    ? 'text-accent'
-                    : 'text-text-muted hover:text-text-secondary'
+                `relative flex flex-col items-center justify-center h-full px-5 transition-colors ${
+                  isActive ? 'text-accent' : 'text-text-muted hover:text-text-secondary'
                 }`
               }
             >
-              <Icon size={22} strokeWidth={1.75} />
-              <span className="text-[10px] font-medium tracking-wide">{label}</span>
+              {({ isActive }) => (
+                <>
+                  <Icon size={20} strokeWidth={isActive ? 2 : 1.5} />
+                  <span className="text-[9px] font-medium mt-0.5 tracking-wide">{label}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="tab-indicator"
+                      className="absolute -top-px left-4 right-4 h-[2px] bg-accent rounded-full"
+                    />
+                  )}
+                </>
+              )}
             </NavLink>
           ))}
         </div>

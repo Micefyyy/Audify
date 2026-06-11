@@ -17,16 +17,12 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
   const navigate = useNavigate();
   const addToQueue = usePlayerStore(s => s.addToQueue);
   return (
-    <div className="group flex items-center gap-3 w-full px-6 py-2 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
+    <div className="group flex items-center gap-3 px-5 py-2 hover:bg-white/[0.02] transition-colors">
       <button
         onClick={() => { haptics.tap(); onPlay(); }}
         className="flex items-center gap-3 flex-1 min-w-0 text-left"
       >
-        <img
-          src={track.artwork}
-          alt={track.title}
-          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-        />
+        <img src={track.artwork} alt={track.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
           <button
@@ -36,14 +32,14 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
             {track.artist}
           </button>
         </div>
-        <span className="text-text-muted text-xs flex-shrink-0">{formatDuration(track.duration)}</span>
+        <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); haptics.tap(); addToQueue(track); }}
-        className="w-7 h-7 flex items-center justify-center rounded-full text-text-muted opacity-0 group-hover:opacity-100 active:scale-90 transition-all flex-shrink-0"
+        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
         title="Add to queue"
       >
-        <ListPlus size={16} />
+        <ListPlus size={15} />
       </button>
     </div>
   );
@@ -51,13 +47,12 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-3 w-full px-6 py-2 animate-pulse">
+    <div className="flex items-center gap-3 px-5 py-2 animate-pulse">
       <div className="w-10 h-10 rounded-lg bg-bg-surface flex-shrink-0" />
-      <div className="flex-1 space-y-2">
-        <div className="h-3 bg-bg-surface rounded w-3/4" />
-        <div className="h-2.5 bg-bg-surface rounded w-1/2" />
+      <div className="flex-1 space-y-1.5">
+        <div className="h-2.5 bg-bg-surface rounded w-3/4" />
+        <div className="h-2 bg-bg-surface rounded w-1/3" />
       </div>
-      <div className="h-3 bg-bg-surface rounded w-10 flex-shrink-0" />
     </div>
   );
 }
@@ -71,6 +66,7 @@ export default function SearchPage() {
   const [searched, setSearched] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const queryRef = useRef(query);
+  const inputRef = useRef<HTMLInputElement>(null);
   const play = usePlayerStore(s => s.play);
 
   queryRef.current = query;
@@ -132,43 +128,43 @@ export default function SearchPage() {
   }
 
   const categories: { label: string; bg: string }[] = [
-    { label: 'Hip-Hop',    bg: 'bg-amber-800' },
-    { label: 'Lo-fi',       bg: 'bg-violet-800' },
-    { label: 'Pop',         bg: 'bg-rose-800' },
-    { label: 'Rock',        bg: 'bg-orange-800' },
-    { label: 'Electronic',  bg: 'bg-cyan-800' },
-    { label: 'R&B',         bg: 'bg-emerald-800' },
-    { label: 'Indie',       bg: 'bg-indigo-800' },
-    { label: 'Jazz',        bg: 'bg-stone-700' },
+    { label: 'Hip-Hop',    bg: 'from-amber-700/40 to-amber-900/20' },
+    { label: 'Lo-fi',       bg: 'from-violet-700/40 to-violet-900/20' },
+    { label: 'Pop',         bg: 'from-rose-700/40 to-rose-900/20' },
+    { label: 'Rock',        bg: 'from-orange-700/40 to-orange-900/20' },
+    { label: 'Electronic',  bg: 'from-cyan-700/40 to-cyan-900/20' },
+    { label: 'R&B',         bg: 'from-emerald-700/40 to-emerald-900/20' },
+    { label: 'Indie',       bg: 'from-indigo-700/40 to-indigo-900/20' },
+    { label: 'Jazz',        bg: 'from-stone-600/40 to-stone-800/20' },
   ];
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 pt-14 pb-4">
-        <div className="bg-bg-surface border border-white/5 rounded-2xl px-4 py-3 flex items-center gap-3">
-          <SearchIcon size={16} className="text-text-muted flex-shrink-0" />
+      <div className="px-5 pt-14 pb-3">
+        <div className="bg-bg-surface rounded-lg px-3.5 py-2.5 flex items-center gap-2.5">
+          <SearchIcon size={15} className="text-text-muted flex-shrink-0" />
           <input
-            placeholder="Songs, artists, albums…"
+            ref={inputRef}
+            placeholder="Search songs, artists..."
             className="bg-transparent flex-1 text-sm text-text-primary placeholder:text-text-muted outline-none"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            autoFocus
           />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto overscroll-none pb-4">
         {!query.trim() && (
-          <div className="px-6 space-y-4">
-            <h2 className="text-lg font-bold text-text-primary">Browse</h2>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="px-5">
+            <h2 className="text-sm font-semibold text-text-primary mb-2.5">Browse</h2>
+            <div className="grid grid-cols-2 gap-2">
               {categories.map(cat => (
                 <button
                   key={cat.label}
                   onClick={() => handleBrowse(cat.label)}
-                  className={`${cat.bg} rounded-2xl px-4 py-6 text-left active:brightness-110 transition-all`}
+                  className={`bg-gradient-to-br ${cat.bg} rounded-lg px-3 py-3 text-left active:brightness-110 transition-all`}
                 >
-                  <span className="text-white font-bold text-sm">{cat.label}</span>
+                  <span className="text-white/90 font-semibold text-xs">{cat.label}</span>
                 </button>
               ))}
             </div>
@@ -176,7 +172,7 @@ export default function SearchPage() {
         )}
 
         {loading && (
-          <div className="space-y-1">
+          <div>
             <SkeletonRow />
             <SkeletonRow />
             <SkeletonRow />
@@ -184,25 +180,21 @@ export default function SearchPage() {
         )}
 
         {!loading && error && (
-          <div className="px-6 py-12 flex flex-col items-center gap-2">
-            <p className="text-text-muted text-sm">{error}</p>
+          <div className="px-5 py-12 flex flex-col items-center gap-2">
+            <p className="text-text-muted text-xs">{error}</p>
           </div>
         )}
 
         {!loading && !error && searched && results.length === 0 && (
-          <div className="px-6 py-12 flex flex-col items-center gap-2">
-            <p className="text-text-muted text-sm">No results</p>
+          <div className="px-5 py-12 flex flex-col items-center gap-2">
+            <p className="text-text-muted text-xs">No results</p>
           </div>
         )}
 
         {!loading && !error && results.length > 0 && (
-          <div className="space-y-1">
+          <div>
             {results.map(track => (
-              <TrackRow
-                key={track.id}
-                track={track}
-                onPlay={() => handlePlay(track)}
-              />
+              <TrackRow key={track.id} track={track} onPlay={() => handlePlay(track)} />
             ))}
           </div>
         )}

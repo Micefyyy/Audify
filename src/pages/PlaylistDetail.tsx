@@ -27,16 +27,12 @@ function TrackRow({
   const addToQueue = usePlayerStore(s => s.addToQueue);
 
   return (
-    <div className="group flex items-center gap-3 px-6 py-2 hover:bg-white/[0.03] transition-colors">
+    <div className="group flex items-center gap-3 px-5 py-2 hover:bg-white/[0.02] transition-colors">
       <button
         onClick={() => { haptics.tap(); onPlay(); }}
         className="flex items-center gap-3 flex-1 min-w-0 text-left"
       >
-        <img
-          src={track.artwork}
-          alt={track.title}
-          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-        />
+        <img src={track.artwork} alt={track.title} className="w-9 h-9 rounded-md object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
           <button
@@ -46,38 +42,38 @@ function TrackRow({
             {track.artist}
           </button>
         </div>
-        <span className="text-text-muted text-xs flex-shrink-0">{formatDuration(track.duration)}</span>
+        <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
       </button>
 
       <button
         onClick={(e) => { e.stopPropagation(); haptics.tap(); addToQueue(track); }}
-        className="w-7 h-7 flex items-center justify-center rounded-full text-text-muted opacity-0 group-hover:opacity-100 active:scale-90 transition-all flex-shrink-0"
+        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
         title="Add to queue"
       >
-        <ListPlus size={15} />
+        <ListPlus size={13} />
       </button>
 
       {confirming ? (
         <div className="flex items-center gap-1">
           <button
             onClick={() => { haptics.impact(); onRemove(); setConfirming(false); }}
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-red/10 text-red active:scale-90 transition-transform"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-red/10 text-red active:scale-90 transition-transform"
           >
-            <Check size={14} />
+            <Check size={12} />
           </button>
           <button
             onClick={() => setConfirming(false)}
-            className="w-7 h-7 flex items-center justify-center rounded-full text-text-muted active:scale-90 transition-transform"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-transform"
           >
-            <X size={14} />
+            <X size={12} />
           </button>
         </div>
       ) : (
         <button
           onClick={(e) => { e.stopPropagation(); haptics.tap(); setConfirming(true); }}
-          className="w-7 h-7 flex items-center justify-center rounded-full text-text-muted opacity-0 group-hover:opacity-100 active:scale-90 transition-all"
+          className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/[0.04] active:scale-90 transition-all"
         >
-          <Trash2 size={14} />
+          <Trash2 size={12} />
         </button>
       )}
     </div>
@@ -99,7 +95,7 @@ export default function PlaylistDetail() {
   if (!found) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 px-6">
-        <Music size={40} className="text-text-muted" />
+        <Music size={32} className="text-text-muted" />
         <p className="text-text-muted text-sm">Playlist not found</p>
         <button
           onClick={() => navigate('/library')}
@@ -161,12 +157,12 @@ export default function PlaylistDetail() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 pt-14 pb-2">
+      <div className="flex items-center gap-3 px-5 pt-14 pb-2">
         <button
           onClick={() => navigate('/library')}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-text-primary active:bg-white/10 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-text-primary hover:bg-white/[0.04] transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
           {editing ? (
@@ -174,7 +170,7 @@ export default function PlaylistDetail() {
               <input
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
-                className="flex-1 bg-bg-surface text-text-primary text-lg font-bold rounded-xl px-3 py-1.5 border border-white/10 outline-none focus:border-accent/60 transition-colors"
+                className="flex-1 bg-bg-surface text-text-primary text-lg font-bold rounded-lg px-3 py-1.5 outline-none focus:ring-1 ring-accent/60 transition-shadow"
                 autoFocus
                 onKeyDown={e => {
                   if (e.key === 'Enter') handleSaveRename();
@@ -184,15 +180,15 @@ export default function PlaylistDetail() {
               <button
                 onClick={handleSaveRename}
                 disabled={!editName.trim()}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-accent disabled:opacity-30 active:scale-90 transition-transform"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-accent disabled:opacity-30 active:scale-90 transition-transform"
               >
-                <Check size={18} />
+                <Check size={16} />
               </button>
               <button
                 onClick={handleCancelRename}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-text-muted active:scale-90 transition-transform"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-transform"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
           ) : (
@@ -200,37 +196,37 @@ export default function PlaylistDetail() {
               <h1 className="text-lg font-bold text-text-primary truncate">{pl.name}</h1>
               <button
                 onClick={handleStartEdit}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-text-muted hover:text-text-secondary active:scale-90 transition-all shrink-0"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-all shrink-0"
               >
-                <Pencil size={14} />
+                <Pencil size={12} />
               </button>
             </div>
           )}
         </div>
         <button
           onClick={handleDelete}
-          className="w-9 h-9 flex items-center justify-center rounded-full text-red active:bg-red/10 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-red hover:bg-red/10 transition-colors"
         >
-          <Trash2 size={18} />
+          <Trash2 size={15} />
         </button>
       </div>
 
-      <div className="flex items-center justify-between px-6 py-3">
-        <span className="text-text-muted text-sm">{pl.tracks.length} tracks</span>
+      <div className="flex items-center justify-between px-5 py-3">
+        <span className="text-text-muted text-xs">{pl.tracks.length} tracks</span>
         {pl.tracks.length > 0 && (
           <div className="flex items-center gap-2">
             <button
               onClick={handleShuffle}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bg-surface text-text-secondary text-xs font-medium active:scale-95 transition-transform border border-white/5"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-surface text-text-secondary text-xs font-medium active:scale-95 transition-transform"
             >
-              <Shuffle size={12} />
+              <Shuffle size={11} />
               Shuffle
             </button>
             <button
               onClick={handlePlayAll}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-accent text-white text-sm font-medium active:scale-95 transition-transform"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-medium active:scale-95 transition-transform"
             >
-              <Play size={14} fill="currentColor" />
+              <Play size={11} fill="currentColor" />
               Play All
             </button>
           </div>
@@ -240,8 +236,8 @@ export default function PlaylistDetail() {
       <div className="flex-1 overflow-y-auto overscroll-none pb-4">
         {pl.tracks.length === 0 ? (
           <div className="py-16 flex flex-col items-center gap-2">
-            <Music size={28} className="text-text-muted" />
-            <p className="text-text-muted text-sm">No tracks in this playlist</p>
+            <Music size={22} className="text-text-muted" />
+            <p className="text-text-muted text-xs">No tracks in this playlist</p>
           </div>
         ) : (
           pl.tracks.map(track => (

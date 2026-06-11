@@ -21,14 +21,14 @@ export default function SettingsPage() {
   const [qualityOpen, setQualityOpen] = useState(false);
 
   return (
-    <div className="px-6 pt-14 pb-6 space-y-6">
-      <h1 className="text-2xl font-bold text-text-primary">Settings</h1>
+    <div className="px-5 pt-14 pb-6 space-y-6">
+      <h1 className="text-xl font-bold text-text-primary">Settings</h1>
 
       {/* ── Audio Quality ────────────────────────────────────────────────── */}
       <div>
         <button
           onClick={() => setQualityOpen(!qualityOpen)}
-          className="flex justify-between items-center w-full py-3 border-b border-white/5"
+          className="flex justify-between items-center w-full py-3 border-b border-white/[0.04]"
         >
           <span className="text-text-primary text-sm">Audio Quality</span>
           <span className="text-text-secondary text-sm">{qualityLabels[audioQuality]}</span>
@@ -40,10 +40,10 @@ export default function SettingsPage() {
               <button
                 key={q}
                 onClick={() => { setAudioQuality(q); setQualityOpen(false); }}
-                className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                   audioQuality === q
                     ? 'bg-accent text-white'
-                    : 'bg-bg-surface text-text-secondary active:bg-bg-elevated'
+                    : 'bg-bg-surface text-text-secondary hover:bg-bg-elevated'
                 }`}
               >
                 {qualityLabels[q]}
@@ -54,16 +54,16 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Download on Wi-Fi only ────────────────────────────────────────── */}
-      <div className="flex justify-between items-center py-3 border-b border-white/5">
+      <div className="flex justify-between items-center py-3 border-b border-white/[0.04]">
         <span className="text-text-primary text-sm">Download on Wi-Fi only</span>
         <button
           onClick={() => setDownloadOnWifi(!downloadOnWifi)}
-          className={`relative w-11 h-6 rounded-full transition-colors ${
+          className={`relative w-10 h-5 rounded-full transition-colors ${
             downloadOnWifi ? 'bg-accent' : 'bg-bg-overlay'
           }`}
         >
           <span
-            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
               downloadOnWifi ? 'translate-x-5' : 'translate-x-0'
             }`}
           />
@@ -71,7 +71,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Crossfade ─────────────────────────────────────────────────────── */}
-      <div className="py-3 border-b border-white/5 space-y-2">
+      <div className="py-3 border-b border-white/[0.04] space-y-2">
         <div className="flex justify-between items-center">
           <span className="text-text-primary text-sm">Crossfade</span>
           <span className="text-text-secondary text-sm">{crossfadeDuration}s</span>
@@ -83,17 +83,17 @@ export default function SettingsPage() {
           step={0.5}
           value={crossfadeDuration}
           onChange={e => setCrossfadeDuration(parseFloat(e.target.value))}
-          className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-bg-overlay accent-accent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:shadow-glow"
+          className="w-full h-1 rounded-full appearance-none cursor-pointer bg-bg-overlay accent-accent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
         />
       </div>
 
       {/* ── Equalizer Preset ──────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center py-3 border-b border-white/5">
+      <div className="flex justify-between items-center py-3 border-b border-white/[0.04]">
         <span className="text-text-primary text-sm">Equalizer</span>
         <select
           value={equalizerPreset}
           onChange={e => setEqualizerPreset(e.target.value)}
-          className="bg-bg-surface text-text-secondary text-sm rounded-xl px-3 py-1.5 border border-white/5 outline-none"
+          className="bg-bg-surface text-text-secondary text-xs rounded-lg px-3 py-1.5 outline-none"
         >
           {['Flat', 'Pop', 'Rock', 'Jazz', 'Classical', 'Hip-Hop', 'Electronic', 'Acoustic'].map(p => (
             <option key={p} value={p}>{p}</option>
@@ -102,7 +102,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── Piped Instance ──────────────────────────────────────────────────── */}
-      <div className="py-3 border-b border-white/5 space-y-2">
+      <div className="py-3 border-b border-white/[0.04] space-y-2">
         <div className="flex justify-between items-center">
           <span className="text-text-primary text-sm">Piped Instance</span>
           {pipedInstance !== DEFAULT_PIPED_INSTANCE && (
@@ -119,14 +119,12 @@ export default function SettingsPage() {
           value={pipedInstance}
           onChange={e => setPipedInstance(e.target.value)}
           placeholder={DEFAULT_PIPED_INSTANCE}
-          className="w-full bg-bg-surface text-text-primary text-sm rounded-xl px-3 py-2 border border-white/5 outline-none focus:border-accent transition-colors"
+          className="w-full bg-bg-surface text-text-primary text-sm rounded-lg px-3 py-2 outline-none focus:ring-1 ring-accent/60 transition-shadow"
         />
         <p className="text-text-muted text-xs leading-relaxed">
           API URL of a Piped instance. Uses <code className="text-accent/80">{DEFAULT_PIPED_INSTANCE}</code> by default.
         </p>
       </div>
-
-
     </div>
   );
 }

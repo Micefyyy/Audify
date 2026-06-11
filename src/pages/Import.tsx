@@ -146,25 +146,25 @@ export default function ImportPage() {
   }
 
   return (
-    <div className="px-6 pt-14 pb-6 space-y-8">
+    <div className="px-5 pt-14 pb-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Import Playlist</h1>
-        <p className="text-text-secondary text-sm mt-1">Bring your library from anywhere</p>
+        <h1 className="text-xl font-bold text-text-primary">Import Playlist</h1>
+        <p className="text-text-secondary text-xs mt-1">Bring your library from anywhere</p>
       </div>
 
       {/* Source picker */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2.5">
         {sources.map(({ id, icon: Icon, label, hint }) => (
           <button
             key={id}
             onClick={() => { setSelected(id); setStatus('idle'); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); setInput(''); setErrorMessage(''); }}
-            className={`flex flex-col gap-2 p-4 rounded-2xl border text-left transition-all ${
+            className={`flex flex-col gap-2 p-3.5 rounded-lg text-left transition-all ${
               selected === id
-                ? 'border-accent bg-accent/10 text-text-primary'
-                : 'border-white/5 bg-bg-surface text-text-secondary'
+                ? 'bg-accent/10 text-text-primary'
+                : 'bg-bg-surface text-text-secondary'
             } ${id === 'apple' ? 'opacity-50' : ''}`}
           >
-            <Icon size={20} className={selected === id ? 'text-accent' : ''} />
+            <Icon size={18} className={selected === id ? 'text-accent' : ''} />
             <span className="font-semibold text-sm">{label}</span>
             <span className="text-xs text-text-muted leading-tight">{hint}</span>
           </button>
@@ -175,7 +175,7 @@ export default function ImportPage() {
       {selected && status !== 'success' && status !== 'loading' && (
         <div className="space-y-3">
           {selected === 'apple' && (
-            <p className="text-text-muted text-sm text-center py-4">
+            <p className="text-text-muted text-xs text-center py-3">
               Apple Music import requires an Apple Developer account — coming in a future update.
             </p>
           )}
@@ -184,12 +184,12 @@ export default function ImportPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder={selected === 'url' ? 'https://example.com/playlist.json' : 'https://open.spotify.com/playlist/...'}
-              className="w-full bg-bg-surface border border-white/5 rounded-2xl px-4 py-3 text-text-primary placeholder:text-text-muted text-sm outline-none focus:border-accent/60 transition-colors"
+              className="w-full bg-bg-surface rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted text-sm outline-none focus:ring-1 ring-accent/60 transition-shadow"
             />
           )}
           {selected === 'file' && (
-            <label className="flex items-center justify-center gap-2 w-full bg-bg-surface border border-dashed border-white/10 rounded-2xl py-8 cursor-pointer text-text-secondary text-sm">
-              <FileJson size={18} />
+            <label className="flex items-center justify-center gap-2 w-full bg-bg-surface rounded-lg py-8 cursor-pointer text-text-secondary text-sm">
+              <FileJson size={16} />
               Tap to choose file
               <input type="file" accept=".json,.m3u,.m3u8" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) { setInput(f.name); setSelectedFile(f); } }} />
             </label>
@@ -198,7 +198,7 @@ export default function ImportPage() {
             <button
               onClick={handleImport}
               disabled={!input}
-              className="w-full bg-accent text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.98] transition-transform"
+              className="w-full bg-accent text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.98] transition-transform"
             >
               Import Playlist
             </button>
@@ -208,14 +208,14 @@ export default function ImportPage() {
 
       {/* Apple Music "not supported" from the button click too */}
       {selected === 'apple' && status === 'error' && (
-        <p className="text-text-muted text-sm text-center">Apple Music import is not yet available.</p>
+        <p className="text-text-muted text-xs text-center">Apple Music import is not yet available.</p>
       )}
 
       {/* Progress indicator during track matching */}
       {progress.total > 0 && status === 'loading' && (
-        <div className="flex flex-col items-center gap-3 py-10">
-          <Loader2 size={28} className="text-accent animate-spin" />
-          <p className="text-text-secondary text-sm">
+        <div className="flex flex-col items-center gap-3 py-8">
+          <Loader2 size={22} className="text-accent animate-spin" />
+          <p className="text-text-secondary text-xs">
             Matching {progress.matched}/{progress.total} tracks…
           </p>
         </div>
@@ -223,11 +223,11 @@ export default function ImportPage() {
 
       {/* Success state */}
       {status === 'success' && result && (
-        <div className="flex flex-col items-center gap-3 py-10">
-          <CheckCircle2 size={48} className="text-accent" />
-          <p className="text-text-primary font-bold text-lg">{result.name}</p>
-          <p className="text-text-secondary text-sm">{result.trackCount} tracks imported</p>
-          <button onClick={() => { setStatus('idle'); setInput(''); setSelected(null); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); }} className="mt-4 text-accent text-sm">
+        <div className="flex flex-col items-center gap-2 py-8">
+          <CheckCircle2 size={36} className="text-accent" />
+          <p className="text-text-primary font-bold">{result.name}</p>
+          <p className="text-text-secondary text-xs">{result.trackCount} tracks imported</p>
+          <button onClick={() => { setStatus('idle'); setInput(''); setSelected(null); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); }} className="mt-3 text-accent text-xs">
             Import another
           </button>
         </div>
