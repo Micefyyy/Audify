@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, ListPlus } from 'lucide-react';
+import { Search as SearchIcon, ListPlus, ExternalLink } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { searchTracks, preresolveTracks } from '../services/audioService';
 import { useHaptics } from '../hooks/useHaptics';
@@ -22,24 +22,26 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
         onClick={() => { haptics.tap(); onPlay(); }}
         className="flex items-center gap-3 flex-1 min-w-0 text-left"
       >
-        <img src={track.artwork} alt={track.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+        <img src={track.artwork} alt={track.title} className="w-9 h-9 rounded-md object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
-          <button
-            onClick={e => { e.stopPropagation(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
-            className="text-text-secondary text-xs truncate hover:text-accent transition-colors text-left block w-full"
-          >
-            {track.artist}
-          </button>
+          <p className="text-text-secondary text-xs truncate">{track.artist}</p>
         </div>
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); haptics.tap(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
+        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
+        title="View artist"
+      >
+        <ExternalLink size={11} />
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); haptics.tap(); addToQueue(track); }}
         className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
         title="Add to queue"
       >
-        <ListPlus size={15} />
+        <ListPlus size={13} />
       </button>
     </div>
   );
@@ -48,7 +50,7 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
 function SkeletonRow() {
   return (
     <div className="flex items-center gap-3 px-5 py-2 animate-pulse">
-      <div className="w-10 h-10 rounded-lg bg-bg-surface flex-shrink-0" />
+      <div className="w-9 h-9 rounded-lg bg-bg-surface flex-shrink-0" />
       <div className="flex-1 space-y-1.5">
         <div className="h-2.5 bg-bg-surface rounded w-3/4" />
         <div className="h-2 bg-bg-surface rounded w-1/3" />

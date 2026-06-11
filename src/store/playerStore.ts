@@ -67,8 +67,10 @@ function initHowl(
     html5: true,
     volume,
     onloaderror: (_id: number, err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to load audio';
+      console.error('[Howler] loaderror:', msg, 'url:', resolved.audioUrl);
       set({
-        error: `Playback error: ${err instanceof Error ? err.message : 'Failed to load audio'}`,
+        error: `Playback error: ${msg}`,
         isLoading: false,
         isPlaying: false,
       });

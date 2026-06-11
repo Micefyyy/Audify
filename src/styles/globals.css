@@ -9,16 +9,47 @@
   }
 
   html, body, #root {
-    height: 100%;
+    height: 100dvh;
     overflow: hidden;
-    background-color: #0C0C0C;
-    color: #F5F5F5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   ::-webkit-scrollbar {
     display: none;
+  }
+
+  /* ── Theme: dark (default) ───────────────────────────────────────────── */
+  :root, .theme-dark {
+    --bg-base:    #0C0C0C;
+    --bg-surface: #161616;
+    --bg-elevated: #1E1E1E;
+    --bg-overlay: #262626;
+    --text-primary:   #F5F5F5;
+    --text-secondary: #9E9E9E;
+    --text-muted:     #555555;
+    --accent:     #6C63FF;
+    --accent-hover: #7D75FF;
+    --error:      #FF453A;
+  }
+
+  /* ── Theme: light ────────────────────────────────────────────────────── */
+  .theme-light {
+    --bg-base:    #F5F5F5;
+    --bg-surface: #FFFFFF;
+    --bg-elevated: #EBEBEB;
+    --bg-overlay: #D6D6D6;
+    --text-primary:   #1A1A1A;
+    --text-secondary: #666666;
+    --text-muted:     #999999;
+    --accent:     #6C63FF;
+    --accent-hover: #5B52E0;
+    --error:      #DC3545;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
   }
 }
 

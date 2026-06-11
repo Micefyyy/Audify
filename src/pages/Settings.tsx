@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSettingsStore, DEFAULT_PIPED_INSTANCE } from '../store/settingsStore';
-import type { AudioQuality } from '../store/settingsStore';
+import type { AudioQuality, Theme } from '../store/settingsStore';
+import { Moon, Sun } from 'lucide-react';
 
 const qualityLabels: Record<AudioQuality, string> = {
   low: 'Low',
@@ -16,13 +17,31 @@ export default function SettingsPage() {
     crossfadeDuration, setCrossfadeDuration,
     equalizerPreset, setEqualizerPreset,
     pipedInstance, setPipedInstance,
+    theme, setTheme,
   } = useSettingsStore();
 
   const [qualityOpen, setQualityOpen] = useState(false);
 
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+
   return (
     <div className="px-5 pt-14 pb-6 space-y-6">
       <h1 className="text-xl font-bold text-text-primary">Settings</h1>
+
+      {/* ── Theme ──────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between py-3 border-b border-white/[0.04]">
+        <span className="text-text-primary text-sm">Appearance</span>
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-surface text-text-secondary text-xs font-medium active:scale-95 transition-transform"
+        >
+          {theme === 'dark' ? (
+            <><Sun size={14} /> Light</>
+          ) : (
+            <><Moon size={14} /> Dark</>
+          )}
+        </button>
+      </div>
 
       {/* ── Audio Quality ────────────────────────────────────────────────── */}
       <div>

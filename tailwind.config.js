@@ -5,22 +5,21 @@ export default {
     extend: {
       colors: {
         bg: {
-          base:    '#0C0C0C',
-          surface: '#161616',
-          elevated: '#1E1E1E',
-          overlay: '#262626',
+          base:    'var(--bg-base)',
+          surface: 'var(--bg-surface)',
+          elevated: 'var(--bg-elevated)',
+          overlay: 'var(--bg-overlay)',
         },
         accent: {
-          DEFAULT: '#6C63FF',
-          hover:   '#7D75FF',
-          muted:   '#6C63FF33',
+          DEFAULT: 'var(--accent)',
+          hover:   'var(--accent-hover)',
         },
         text: {
-          primary:   '#F5F5F5',
-          secondary: '#9E9E9E',
-          muted:     '#555555',
+          primary:   'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted:     'var(--text-muted)',
         },
-        error: '#FF453A',
+        error: 'var(--error)',
       },
       fontFamily: {
         sans: ['Inter var', 'Inter', 'system-ui', 'sans-serif'],

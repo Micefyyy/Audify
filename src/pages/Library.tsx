@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Music, Heart, Download, Check, X, Trash2, ListPlus } from 'lucide-react';
+import { Plus, Music, Heart, Download, Check, X, Trash2, ListPlus, ExternalLink } from 'lucide-react';
 import type { Track } from '../store/playerStore';
 import type { Playlist } from '../store/libraryStore';
 import { useLibraryStore } from '../store/libraryStore';
@@ -29,14 +29,17 @@ function TrackRow({ track, onPlay, onRemove }: { track: Track; onPlay: () => voi
         <img src={track.artwork} alt={track.title} className="w-9 h-9 rounded-md object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
-          <button
-            onClick={e => { e.stopPropagation(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
-            className="text-text-secondary text-xs truncate hover:text-accent transition-colors text-left block w-full"
-          >
-            {track.artist}
-          </button>
+          <p className="text-text-secondary text-xs truncate">{track.artist}</p>
         </div>
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); haptics.tap(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
+        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
+        title="View artist"
+      >
+        <ExternalLink size={11} />
       </button>
 
       <button
@@ -44,7 +47,7 @@ function TrackRow({ track, onPlay, onRemove }: { track: Track; onPlay: () => voi
         className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
         title="Add to queue"
       >
-        <ListPlus size={14} />
+        <ListPlus size={13} />
       </button>
 
       {onRemove && (confirming ? (
@@ -53,13 +56,13 @@ function TrackRow({ track, onPlay, onRemove }: { track: Track; onPlay: () => voi
             onClick={() => { haptics.impact(); onRemove(); setConfirming(false); }}
             className="w-7 h-7 flex items-center justify-center rounded-lg bg-red/10 text-red active:scale-90 transition-transform"
           >
-            <Check size={13} />
+            <Check size={12} />
           </button>
           <button
             onClick={() => setConfirming(false)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted active:scale-90 transition-transform"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-transform"
           >
-            <X size={13} />
+            <X size={12} />
           </button>
         </div>
       ) : (
@@ -67,7 +70,7 @@ function TrackRow({ track, onPlay, onRemove }: { track: Track; onPlay: () => voi
           onClick={e => { e.stopPropagation(); haptics.tap(); setConfirming(true); }}
           className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
         >
-          <Trash2 size={13} />
+          <Trash2 size={12} />
         </button>
       ))}
     </div>

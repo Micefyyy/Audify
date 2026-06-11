@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Pencil, Check, X, Play, Shuffle, ListPlus, Music } from 'lucide-react';
+import { ArrowLeft, Trash2, Pencil, Check, X, Play, Shuffle, ListPlus, ExternalLink, Music } from 'lucide-react';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useHaptics } from '../hooks/useHaptics';
@@ -35,14 +35,17 @@ function TrackRow({
         <img src={track.artwork} alt={track.title} className="w-9 h-9 rounded-md object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
-          <button
-            onClick={e => { e.stopPropagation(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
-            className="text-text-secondary text-xs truncate hover:text-accent transition-colors text-left block w-full"
-          >
-            {track.artist}
-          </button>
+          <p className="text-text-secondary text-xs truncate">{track.artist}</p>
         </div>
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
+      </button>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); haptics.tap(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
+        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
+        title="View artist"
+      >
+        <ExternalLink size={11} />
       </button>
 
       <button
@@ -54,7 +57,7 @@ function TrackRow({
       </button>
 
       {confirming ? (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <button
             onClick={() => { haptics.impact(); onRemove(); setConfirming(false); }}
             className="w-7 h-7 flex items-center justify-center rounded-lg bg-red/10 text-red active:scale-90 transition-transform"
