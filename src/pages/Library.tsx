@@ -18,6 +18,7 @@ function formatDuration(seconds: number): string {
 
 function TrackRow({ track, onPlay, onRemove }: { track: Track; onPlay: () => void; onRemove?: () => void }) {
   const haptics = useHaptics();
+  const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
   const addToQueue = usePlayerStore(s => s.addToQueue);
 
@@ -34,7 +35,12 @@ function TrackRow({ track, onPlay, onRemove }: { track: Track; onPlay: () => voi
         />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
-          <p className="text-text-secondary text-xs truncate">{track.artist}</p>
+          <button
+            onClick={e => { e.stopPropagation(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
+            className="text-text-secondary text-xs truncate hover:text-accent transition-colors text-left block w-full"
+          >
+            {track.artist}
+          </button>
         </div>
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
       </button>

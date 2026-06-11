@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Music, Play, Clock, TrendingUp, Grid3X3 } from 'lucide-react';
+import { Music, Play, Clock, Grid3X3 } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { useHaptics } from '../hooks/useHaptics';
 
@@ -83,17 +83,23 @@ export default function HomePage() {
             </div>
             <div className="flex gap-2 overflow-x-auto overscroll-x-contain px-6 pb-1 scrollbar-none">
               {recentlyPlayed.map(track => (
-                <button
-                  key={track.id}
-                  onClick={() => { haptics.tap(); usePlayerStore.getState().play(track, recentlyPlayed); }}
-                  className="flex-shrink-0 w-32"
-                >
-                  <div className="aspect-square rounded-xl overflow-hidden bg-bg-surface mb-1.5">
-                    <img src={track.artwork} alt="" className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-text-primary text-xs font-medium truncate">{track.title}</p>
-                  <p className="text-text-muted text-[10px] truncate">{track.artist}</p>
-                </button>
+                <div key={track.id} className="flex-shrink-0 w-32">
+                  <button
+                    onClick={() => { haptics.tap(); usePlayerStore.getState().play(track, recentlyPlayed); }}
+                    className="w-full"
+                  >
+                    <div className="aspect-square rounded-xl overflow-hidden bg-bg-surface mb-1.5">
+                      <img src={track.artwork} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-text-primary text-xs font-medium truncate text-left">{track.title}</p>
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
+                    className="text-text-muted text-[10px] truncate hover:text-accent transition-colors text-left w-full"
+                  >
+                    {track.artist}
+                  </button>
+                </div>
               ))}
             </div>
           </div>

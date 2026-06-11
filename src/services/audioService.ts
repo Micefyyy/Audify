@@ -167,6 +167,14 @@ export async function resolveTrack(track: Track): Promise<Track> {
   return { ...track, audioUrl };
 }
 
+export async function getArtistTracks(artistName: string): Promise<Track[]> {
+  const data = await fetchFromInstances<PipedSearchResponse>(`/search?q=${encodeURIComponent(artistName)}&filter=music_songs`);
+  const items = (data.items ?? []).map(mapSearchItem);
+  const exact = items.filter(t => t.artist.toLowerCase() === artistName.toLowerCase());
+  if (exact.length >= 3) return exact;
+  return items;
+}
+
 export async function getRecommendations(seed: Track, excludeIds: string[]): Promise<Track[]> {
   const queries = [
     `${seed.artist} ${seed.title}`,
