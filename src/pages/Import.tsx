@@ -3,13 +3,7 @@ import { Music, Apple, Link2, FileJson, CheckCircle2, Loader2 } from 'lucide-rea
 import { searchTracks } from '../services/audioService';
 import { importFile, parseM3U, parseJSON } from '../services/fileImportService';
 import { useHaptics } from '../hooks/useHaptics';
-import {
-  initiateSpotifyAuth,
-  handleAuthCallback,
-  exchangeCodeForToken,
-  fetchSpotifyPlaylist,
-  getCodeVerifier,
-} from '../services/spotifyService';
+import { fetchSpotifyPlaylist } from '../services/spotifyService';
 import { useLibraryStore } from '../store/libraryStore';
 import type { Track } from '../store/playerStore';
 
@@ -67,10 +61,9 @@ export default function ImportPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [result, setResult] = useState<ImportResult | null>(null);
 
-  // Spotify multi-step
-  const [callbackUrl, setCallbackUrl] = useState('');
   const [progress, setProgress] = useState({ matched: 0, total: 0 });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const haptics = useHaptics();
   const { createPlaylist, addToPlaylist } = useLibraryStore();
@@ -80,10 +73,19 @@ export default function ImportPage() {
 
     if (selected === 'spotify') {
       setStatus('loading');
+      setErrorMessage('');
       try {
-        await initiateSpotifyAuth();
-        return;
-      } catch {
+        const playlist = await fetchSpotifyPlaylist(input);
+        const r = await matchAndSave(
+          playlist.name, playlist.tracks, 'spotify',
+          createPlaylist, addToPlaylist,
+          (m, t) => setProgress({ matched: m, total: t }),
+        );
+        setResult(r);
+        haptics.success();
+        setStatus('success');
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : 'Failed to fetch playlist');
         setStatus('error');
       }
       return;
@@ -107,7 +109,8 @@ export default function ImportPage() {
         setResult(r);
         haptics.success();
         setStatus('success');
-      } catch {
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : 'File import failed');
         setStatus('error');
       }
       return;
@@ -136,30 +139,8 @@ export default function ImportPage() {
       setResult(r);
       haptics.success();
       setStatus('success');
-    } catch {
-      setStatus('error');
-    }
-  }
-
-  async function handleCallbackSubmit() {
-    if (!callbackUrl.trim()) return;
-
-    setStatus('loading');
-    try {
-      const code = handleAuthCallback(callbackUrl);
-      const token = await exchangeCodeForToken(code, getCodeVerifier());
-
-      const playlist = await fetchSpotifyPlaylist(input, token);
-
-      const r = await matchAndSave(
-        playlist.name, playlist.tracks, 'spotify',
-        createPlaylist, addToPlaylist,
-        (m, t) => setProgress({ matched: m, total: t }),
-      );
-      setResult(r);
-      haptics.success();
-      setStatus('success');
-    } catch {
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'URL import failed');
       setStatus('error');
     }
   }
@@ -176,7 +157,7 @@ export default function ImportPage() {
         {sources.map(({ id, icon: Icon, label, hint }) => (
           <button
             key={id}
-            onClick={() => { setSelected(id); setStatus('idle'); setCallbackUrl(''); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); setInput(''); }}
+            onClick={() => { setSelected(id); setStatus('idle'); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); setInput(''); setErrorMessage(''); }}
             className={`flex flex-col gap-2 p-4 rounded-2xl border text-left transition-all ${
               selected === id
                 ? 'border-accent bg-accent/10 text-text-primary'
@@ -191,7 +172,7 @@ export default function ImportPage() {
       </div>
 
       {/* Input area */}
-      {selected && status !== 'success' && status !== 'loading' && !callbackUrl && (
+      {selected && status !== 'success' && status !== 'loading' && (
         <div className="space-y-3">
           {selected === 'apple' && (
             <p className="text-text-muted text-sm text-center py-4">
@@ -226,36 +207,8 @@ export default function ImportPage() {
       )}
 
       {/* Apple Music "not supported" from the button click too */}
-      {selected === 'apple' && status === 'error' && !callbackUrl && (
+      {selected === 'apple' && status === 'error' && (
         <p className="text-text-muted text-sm text-center">Apple Music import is not yet available.</p>
-      )}
-
-      {/* Spotify callback URL input (shown after auth window opens) */}
-      {selected === 'spotify' && status === 'loading' && !callbackUrl && (
-        <div className="space-y-3">
-          <p className="text-text-secondary text-sm">
-            After authorizing, you'll be redirected to a page that says "This site can't be reached" — copy the full URL from your browser's address bar and paste it below.
-          </p>
-          <input
-            value={callbackUrl}
-            onChange={e => setCallbackUrl(e.target.value)}
-            placeholder="http://localhost/?code=…"
-            className="w-full bg-bg-surface border border-white/5 rounded-2xl px-4 py-3 text-text-primary placeholder:text-text-muted text-sm outline-none focus:border-accent/60 transition-colors"
-          />
-          <button
-            onClick={handleCallbackSubmit}
-            disabled={!callbackUrl.trim()}
-            className="w-full bg-accent text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40 active:scale-[0.98] transition-transform"
-          >
-            Fetch Playlist
-          </button>
-          <button
-            onClick={() => { setStatus('idle'); setCallbackUrl(''); }}
-            className="w-full text-text-secondary text-sm py-2 active:text-text-primary transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
       )}
 
       {/* Progress indicator during track matching */}
@@ -274,14 +227,17 @@ export default function ImportPage() {
           <CheckCircle2 size={48} className="text-accent" />
           <p className="text-text-primary font-bold text-lg">{result.name}</p>
           <p className="text-text-secondary text-sm">{result.trackCount} tracks imported</p>
-          <button onClick={() => { setStatus('idle'); setInput(''); setSelected(null); setCallbackUrl(''); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); }} className="mt-4 text-accent text-sm">
+          <button onClick={() => { setStatus('idle'); setInput(''); setSelected(null); setProgress({ matched: 0, total: 0 }); setSelectedFile(null); }} className="mt-4 text-accent text-sm">
             Import another
           </button>
         </div>
       )}
 
       {status === 'error' && selected !== 'apple' && (
-        <p className="text-error text-sm text-center">Import failed — check the link and try again.</p>
+        <div className="text-center">
+          <p className="text-error text-sm">Import failed</p>
+          {errorMessage && <p className="text-text-muted text-xs mt-1">{errorMessage}</p>}
+        </div>
       )}
     </div>
   );

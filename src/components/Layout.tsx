@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Home, Search, Library, Upload } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import MiniPlayer from './Player/MiniPlayer';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const tabs = [
   { to: '/',        icon: Home,    label: 'Home' },
@@ -18,25 +18,22 @@ export default function Layout() {
   return (
     <div className="flex flex-col h-full bg-bg-base">
       {/* Page content */}
-      <main className="flex-1 overflow-y-auto overscroll-none">
+      <main className="flex-1 overflow-hidden">
         <Outlet />
       </main>
 
-      {/* Mini player — slides up when a track is loaded */}
-      <AnimatePresence>
-        {currentTrack && (
-          <motion.div
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            onClick={() => navigate('/now-playing')}
-            className="px-3 pb-1 cursor-pointer"
-          >
-            <MiniPlayer />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Mini player — always in the DOM, shows itself when a track is loaded */}
+      <div
+        onClick={() => currentTrack && navigate('/now-playing')}
+        className="px-3 pb-1 cursor-pointer"
+      >
+        <motion.div
+          animate={currentTrack ? { y: 0, opacity: 1 } : { y: 80, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        >
+          <MiniPlayer />
+        </motion.div>
+      </div>
 
       {/* Tab bar */}
       <nav className="glass border-t border-white/5 safe-bottom">

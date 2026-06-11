@@ -125,6 +125,8 @@ export default function SettingsPage() {
           API URL of a Piped instance. Uses <code className="text-accent/80">{DEFAULT_PIPED_INSTANCE}</code> by default.
         </p>
       </div>
+
+
     </div>
   );
 }

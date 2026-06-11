@@ -52,12 +52,15 @@ function extractVideoId(url: string): string | null {
 
 function mapSearchItem(item: PipedSearchItem): Track {
   const videoId = extractVideoId(item.url) ?? '';
+  const artwork = videoId
+    ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+    : item.thumbnail;
   return {
     id: videoId,
     title: item.title,
     artist: item.uploaderName,
     album: '',
-    artwork: item.thumbnail,
+    artwork,
     audioUrl: `piped:${videoId}`,
     duration: item.duration ?? 0,
     source: 'stream',
@@ -162,4 +165,30 @@ export async function getStreamUrl(videoId: string): Promise<string> {
 export async function resolveTrack(track: Track): Promise<Track> {
   const audioUrl = await getStreamUrl(track.id);
   return { ...track, audioUrl };
+}
+
+export async function getRecommendations(seed: Track, excludeIds: string[]): Promise<Track[]> {
+  const queries = [
+    `${seed.artist} ${seed.title}`,
+    seed.artist,
+    `${seed.artist} mix`,
+  ];
+  const seen = new Set(excludeIds);
+  const results: Track[] = [];
+
+  for (const q of queries) {
+    if (results.length >= 5) break;
+    try {
+      const tracks = await searchTracks(q);
+      for (const t of tracks) {
+        if (!seen.has(t.id) && t.id) {
+          seen.add(t.id);
+          results.push(t);
+          if (results.length >= 5) break;
+        }
+      }
+    } catch {}
+  }
+
+  return results;
 }

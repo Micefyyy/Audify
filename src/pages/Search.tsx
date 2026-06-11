@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search as SearchIcon } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Search as SearchIcon, ListPlus } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { searchTracks, preresolveTracks } from '../services/audioService';
 import { useHaptics } from '../hooks/useHaptics';
@@ -13,28 +14,32 @@ function formatDuration(seconds: number): string {
 
 function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
   const haptics = useHaptics();
+  const addToQueue = usePlayerStore(s => s.addToQueue);
   return (
-    <button
-      onClick={() => { haptics.tap(); onPlay(); }}
-      className="flex items-center gap-3 w-full px-6 py-2 active:bg-white/5 transition-colors"
-    >
-      <img
-        src={track.artwork}
-        alt={track.title}
-        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-      />
-      <div className="flex-1 min-w-0 text-left">
-        <p className="text-text-primary text-sm font-medium truncate">
-          {track.title}
-        </p>
-        <p className="text-text-secondary text-xs truncate">
-          {track.artist}
-        </p>
-      </div>
-      <span className="text-text-muted text-xs flex-shrink-0">
-        {formatDuration(track.duration)}
-      </span>
-    </button>
+    <div className="group flex items-center gap-3 w-full px-6 py-2 hover:bg-white/[0.03] active:bg-white/5 transition-colors">
+      <button
+        onClick={() => { haptics.tap(); onPlay(); }}
+        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+      >
+        <img
+          src={track.artwork}
+          alt={track.title}
+          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
+          <p className="text-text-secondary text-xs truncate">{track.artist}</p>
+        </div>
+        <span className="text-text-muted text-xs flex-shrink-0">{formatDuration(track.duration)}</span>
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); haptics.tap(); addToQueue(track); }}
+        className="w-7 h-7 flex items-center justify-center rounded-full text-text-muted opacity-0 group-hover:opacity-100 active:scale-90 transition-all flex-shrink-0"
+        title="Add to queue"
+      >
+        <ListPlus size={16} />
+      </button>
+    </div>
   );
 }
 
@@ -52,7 +57,8 @@ function SkeletonRow() {
 }
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get('q') || '');
   const [results, setResults] = useState<Track[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,6 +68,13 @@ export default function SearchPage() {
   const play = usePlayerStore(s => s.play);
 
   queryRef.current = query;
+
+  useEffect(() => {
+    const qParam = searchParams.get('q');
+    if (qParam && qParam !== query) {
+      setQuery(qParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -109,6 +122,7 @@ export default function SearchPage() {
 
   function handleBrowse(genre: string) {
     setQuery(genre);
+    setSearchParams({ q: genre });
   }
 
   const categories: { label: string; bg: string }[] = [

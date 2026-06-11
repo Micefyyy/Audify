@@ -4,6 +4,8 @@ import Layout from './components/Layout';
 import HomePage from './pages/Home';
 import SearchPage from './pages/Search';
 import LibraryPage from './pages/Library';
+import PlaylistDetail from './pages/PlaylistDetail';
+import QueuePage from './pages/Queue';
 import NowPlayingPage from './pages/NowPlaying';
 import LyricsPage from './pages/Lyrics';
 import ImportPage from './pages/Import';
@@ -18,7 +20,9 @@ export default function App() {
           <Route path="/"        element={<HomePage />} />
           <Route path="/search"  element={<SearchPage />} />
           <Route path="/library" element={<LibraryPage />} />
+          <Route path="/library/:id" element={<PlaylistDetail />} />
           <Route path="/import"  element={<ImportPage />} />
+          <Route path="/queue"   element={<QueuePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
         {/* Full-screen overlays (no tab bar) */}

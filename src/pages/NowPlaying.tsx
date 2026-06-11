@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Heart, MoreHorizontal, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Mic2 } from 'lucide-react';
+import { useRef, useEffect } from 'react';
+import { ChevronDown, Heart, ListMusic, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Sparkles } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { useLibraryStore } from '../store/libraryStore';
 import { motion } from 'framer-motion';
@@ -8,17 +9,25 @@ import { useHaptics } from '../hooks/useHaptics';
 export default function NowPlayingPage() {
   const navigate = useNavigate();
   const haptics = useHaptics();
+  const lyricsRef = useRef<HTMLDivElement>(null);
   const {
-    currentTrack, isPlaying, progress,
+    currentTrack, isPlaying, progress, error,
     pause, resume, seek, skipNext, skipPrev,
-    shuffle, repeat, toggleShuffle, cycleRepeat,
-    volume, setVolume,
+    shuffle, smartShuffle, repeat, toggleShuffle, toggleSmartShuffle, cycleRepeat,
   } = usePlayerStore();
   const { likedSongs, addLike, removeLike } = useLibraryStore();
 
   if (!currentTrack) { navigate('/'); return null; }
 
   const isLiked = likedSongs.some(s => s.id === currentTrack.id);
+  const lyrics = currentTrack.lyrics ?? [];
+  const elapsed = progress * currentTrack.duration;
+  const activeIdx = lyrics.reduce((acc, line, i) => (line.time <= elapsed ? i : acc), -1);
+
+  useEffect(() => {
+    const el = lyricsRef.current?.querySelector(`[data-idx="${activeIdx}"]`) as HTMLElement;
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [activeIdx]);
 
   const handleLike = () => {
     if (isLiked) {
@@ -48,20 +57,20 @@ export default function NowPlayingPage() {
       }}
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 pt-4 pb-2">
+      <div className="flex items-center justify-between px-6 pt-4 pb-2 flex-shrink-0">
         <button onClick={() => navigate(-1)} className="text-text-secondary active:text-text-primary">
           <ChevronDown size={26} />
         </button>
         <div className="text-center">
           <p className="text-xs text-text-secondary uppercase tracking-widest">Now Playing</p>
         </div>
-        <button className="text-text-secondary active:text-text-primary">
-          <MoreHorizontal size={22} />
+        <button onClick={() => navigate('/queue')} className="text-text-secondary active:text-text-primary">
+          <ListMusic size={22} />
         </button>
       </div>
 
       {/* Artwork */}
-      <div className="flex-1 flex items-center justify-center px-10">
+      <div className="flex items-center justify-center px-16 py-2 flex-shrink-0" style={{ maxHeight: '32vh' }}>
         <motion.img
           key={currentTrack.id}
           src={currentTrack.artwork}
@@ -70,87 +79,120 @@ export default function NowPlayingPage() {
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: isPlaying ? 1 : 0.88, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-          className="w-full aspect-square rounded-3xl object-cover shadow-glow"
+          className="max-w-full max-h-full rounded-3xl object-cover shadow-glow aspect-square"
         />
       </div>
 
-      {/* Meta */}
-      <div className="px-8 pt-6">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0">
-            <h1 className="text-text-primary text-xl font-bold truncate">{currentTrack.title}</h1>
-            <p className="text-text-secondary text-sm mt-0.5">{currentTrack.artist}</p>
-          </div>
-          <div className="flex gap-2 mt-1">
-            <button
-              onClick={handleLike}
-              className={isLiked ? 'text-error' : 'text-text-muted active:text-error'}
-            >
-              <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
-            </button>
-            <button
-              onClick={() => navigate('/lyrics')}
-              className="text-text-muted active:text-accent"
-            >
-              <Mic2 size={20} />
-            </button>
-          </div>
+      {/* Title + Artist */}
+      <div className="flex items-start justify-between px-8 pt-4 pb-2 flex-shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-text-primary text-xl font-bold truncate">{currentTrack.title}</h1>
+          <p className="text-text-secondary text-sm mt-0.5">{currentTrack.artist}</p>
         </div>
+        <button
+          onClick={handleLike}
+          className={`mt-1 ${isLiked ? 'text-error' : 'text-text-muted active:text-error'}`}
+        >
+          <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
+        </button>
+      </div>
 
-        {/* Scrubber */}
-        <div className="mt-5">
-          <div
-            className="relative h-1 bg-white/10 rounded-full cursor-pointer"
-            onClick={e => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              seek((e.clientX - rect.left) / rect.width);
-            }}
-          >
-            <motion.div
-              className="absolute left-0 top-0 h-full bg-accent rounded-full"
-              animate={{ width: `${progress * 100}%` }}
-              transition={{ duration: 0.2, ease: 'linear' }}
-            />
+      {/* Error message */}
+      {error && (
+        <p className="text-error text-xs text-center px-8 flex-shrink-0">{error}</p>
+      )}
+
+      {/* Synced lyrics */}
+      <div ref={lyricsRef} className="flex-1 overflow-y-auto px-8 py-4 min-h-0 scrollbar-none">
+        {lyrics.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <p className="text-text-muted text-xs">No lyrics available</p>
           </div>
-          <div className="flex justify-between mt-1.5">
-            <span className="text-[11px] text-text-muted">
-              {fmt(progress * currentTrack.duration)}
-            </span>
-            <span className="text-[11px] text-text-muted">
-              {fmt(currentTrack.duration)}
-            </span>
+        ) : (
+          <div className="space-y-4">
+            {lyrics.map((line, i) => (
+              <motion.p
+                key={i}
+                data-idx={i}
+                animate={{ opacity: i === activeIdx ? 1 : 0.2, scale: i === activeIdx ? 1 : 0.95 }}
+                transition={{ duration: 0.25 }}
+                className={`text-center text-xl font-bold leading-relaxed transition-colors cursor-pointer ${
+                  i === activeIdx ? 'text-text-primary' : 'text-text-secondary'
+                }`}
+                onClick={() => seek(line.time / currentTrack.duration)}
+              >
+                {line.text || <span className="inline-block h-4" />}
+              </motion.p>
+            ))}
           </div>
+        )}
+      </div>
+
+      {/* Scrubber */}
+      <div className="px-8 pt-2 pb-1 flex-shrink-0">
+        <div
+          className="relative h-1 bg-white/10 rounded-full cursor-pointer"
+          onClick={e => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            seek((e.clientX - rect.left) / rect.width);
+          }}
+        >
+          <motion.div
+            className="absolute left-0 top-0 h-full bg-accent rounded-full"
+            animate={{ width: `${progress * 100}%` }}
+            transition={{ duration: 0.2, ease: 'linear' }}
+          />
         </div>
+        <div className="flex justify-between mt-1.5">
+          <span className="text-[11px] text-text-muted">
+            {fmt(progress * currentTrack.duration)}
+          </span>
+          <span className="text-[11px] text-text-muted">
+            {fmt(currentTrack.duration)}
+          </span>
+        </div>
+      </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-between mt-4 mb-6">
+      {/* Controls */}
+      <div className="flex items-center justify-between px-8 pt-2 pb-6 flex-shrink-0">
+        <div className="flex items-center gap-1">
           <button
             onClick={toggleShuffle}
             className={shuffle ? 'text-accent' : 'text-text-muted'}
           >
             <Shuffle size={20} />
           </button>
-          <button onClick={skipPrev} className="text-text-primary active:scale-90 transition-transform">
-            <SkipBack size={28} fill="currentColor" />
-          </button>
           <button
-            onClick={handlePlayPause}
-            className="w-16 h-16 bg-accent rounded-full flex items-center justify-center shadow-glow active:scale-90 transition-transform"
+            onClick={toggleSmartShuffle}
+            className={`relative ${smartShuffle ? 'text-accent' : 'text-text-muted'}`}
+            title="Smart shuffle"
           >
-            {isPlaying
-              ? <Pause size={28} fill="white" color="white" />
-              : <Play size={28} fill="white" color="white" className="ml-1" />}
-          </button>
-          <button onClick={skipNext} className="text-text-primary active:scale-90 transition-transform">
-            <SkipForward size={28} fill="currentColor" />
-          </button>
-          <button
-            onClick={cycleRepeat}
-            className={repeat !== 'none' ? 'text-accent' : 'text-text-muted'}
-          >
-            <RepeatIcon size={20} />
+            <Sparkles size={16} />
+            {smartShuffle && (
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-accent rounded-full" />
+            )}
           </button>
         </div>
+        <button onClick={skipPrev} className="text-text-primary active:scale-90 transition-transform">
+          <SkipBack size={28} fill="currentColor" />
+        </button>
+        <button
+          onClick={handlePlayPause}
+          className="w-16 h-16 bg-accent rounded-full flex items-center justify-center shadow-glow active:scale-90 transition-transform"
+        >
+          {isPlaying
+            ? <Pause size={28} fill="white" color="white" />
+            : <Play size={28} fill="white" color="white" className="ml-1" />}
+        </button>
+        <button onClick={skipNext} className="text-text-primary active:scale-90 transition-transform">
+          <SkipForward size={28} fill="currentColor" />
+        </button>
+        <button
+          onClick={cycleRepeat}
+          className={repeat !== 'none' ? 'text-accent' : 'text-text-muted'}
+        >
+          <RepeatIcon size={20} />
+        </button>
       </div>
     </motion.div>
   );

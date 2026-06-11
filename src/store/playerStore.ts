@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Howl } from 'howler';
-import { resolveTrack, getCachedTrack, preresolveTrack } from '../services/audioService';
+import { resolveTrack, getCachedTrack, preresolveTrack, getRecommendations } from '../services/audioService';
 import { fetchLyrics } from '../services/lyricsService';
 import { isDownloaded, getLocalTrackUri } from '../services/downloadService';
 import { updateNowPlaying, clearNowPlaying } from '../services/nowPlayingService';
@@ -30,10 +30,12 @@ interface PlayerState {
   progress: number;        // 0–1
   volume: number;          // 0–1
   shuffle: boolean;
+  smartShuffle: boolean;
   repeat: 'none' | 'one' | 'all';
   howl: Howl | null;
   isLoading: boolean;
   error: string;
+  recentlyPlayed: Track[];
 
   // Actions
   play: (track: Track, queue?: Track[]) => void;
@@ -44,8 +46,13 @@ interface PlayerState {
   skipPrev: () => void;
   setVolume: (v: number) => void;
   toggleShuffle: () => void;
+  toggleSmartShuffle: () => void;
   cycleRepeat: () => void;
   setProgress: (p: number) => void;
+  addToQueue: (track: Track) => void;
+  removeFromQueue: (index: number) => void;
+  clearQueue: () => void;
+  reorderQueue: (from: number, to: number) => void;
 }
 
 function initHowl(
@@ -59,13 +66,15 @@ function initHowl(
     format: ['mp4', 'aac', 'webm'],
     html5: true,
     volume,
-    onend: () => get().skipNext(),
     onloaderror: (_id: number, err: unknown) => {
       set({
         error: `Playback error: ${err instanceof Error ? err.message : 'Failed to load audio'}`,
         isLoading: false,
         isPlaying: false,
       });
+    },
+    onload: () => {
+      set({ isLoading: false });
     },
     onplay: () => {
       set({ isLoading: false, isPlaying: true });
@@ -80,12 +89,13 @@ function initHowl(
     },
   });
 
-  newHowl.play();
   set({
     currentTrack: resolved,
     progress: 0,
     howl: newHowl,
+    isLoading: false,
   });
+  newHowl.play();
 
   fetchLyrics(resolved.title, resolved.artist).then(lyrics => {
     if (!lyrics) return;
@@ -104,27 +114,35 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   progress: 0,
   volume: 0.8,
   shuffle: false,
+  smartShuffle: false,
   repeat: 'none',
   howl: null,
   isLoading: false,
   error: '',
+  recentlyPlayed: [],
 
   play(track, queue) {
     const trackId = track.id;
-    const { howl } = get();
+    const { howl, isLoading } = get();
+    if (isLoading) return;
     if (howl) howl.unload();
 
     const newQueue = queue ?? get().queue;
     const newIndex = queue ? queue.findIndex(t => t.id === trackId) : get().queueIndex;
 
-    set({
+    set(s => ({
       howl: null,
       isLoading: true,
       error: '',
       isPlaying: false,
       queue: newQueue,
       queueIndex: newIndex,
-    });
+      recentlyPlayed: [track, ...s.recentlyPlayed.filter(t => t.id !== track.id)].slice(0, 20),
+    }));
+
+    if (get().smartShuffle) {
+      fetchSmartRecommendations(get, track);
+    }
 
     const cached = getCachedTrack(track);
     if (cached && !cached.audioUrl.startsWith('piped:')) {
@@ -168,14 +186,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   skipNext() {
-    const { queue, queueIndex, shuffle, repeat } = get();
+    const { queue, queueIndex, shuffle, smartShuffle, repeat } = get();
     if (repeat === 'one') { get().howl?.seek(0); get().howl?.play(); return; }
     let next = queueIndex + 1;
     if (shuffle) next = Math.floor(Math.random() * queue.length);
     if (next >= queue.length) {
       if (repeat === 'all') next = 0; else { set({ isPlaying: false }); return; }
     }
-    get().play(queue[next], queue);
+    const nextTrack = queue[next];
+    if (!nextTrack) { set({ isPlaying: false }); return; }
+    get().play(nextTrack, queue);
+    if (smartShuffle && queue.length - next < 3) {
+      fetchSmartRecommendations(get, nextTrack);
+    }
   },
 
   skipPrev() {
@@ -193,6 +216,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   toggleShuffle() { set(s => ({ shuffle: !s.shuffle })); },
 
+  toggleSmartShuffle() {
+    const wasOn = get().smartShuffle;
+    set({ smartShuffle: !wasOn, shuffle: wasOn ? get().shuffle : true });
+    if (!wasOn && get().currentTrack) {
+      fetchSmartRecommendations(get, get().currentTrack!);
+    }
+  },
+
   cycleRepeat() {
     const map: Record<PlayerState['repeat'], PlayerState['repeat']> = {
       none: 'all', all: 'one', one: 'none',
@@ -201,7 +232,51 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   setProgress(p) { set({ progress: p }); },
+
+  addToQueue(track) {
+    set(s => {
+      if (s.queue.some(t => t.id === track.id)) return s;
+      return { queue: [...s.queue, track] };
+    });
+  },
+
+  removeFromQueue(index) {
+    set(s => ({ queue: s.queue.filter((_, i) => i !== index) }));
+  },
+
+  clearQueue() {
+    set({ queue: [] });
+  },
+
+  reorderQueue(from, to) {
+    set(s => {
+      const q = [...s.queue];
+      const [removed] = q.splice(from, 1);
+      q.splice(to, 0, removed);
+      return { queue: q };
+    });
+  },
 }));
+
+// ── Smart shuffle helpers ────────────────────────────────────────────────────
+
+let fetching = false;
+
+async function fetchSmartRecommendations(get: () => PlayerState, seed: Track) {
+  if (fetching) return;
+  fetching = true;
+  try {
+    const state = get();
+    const excludeIds = [state.currentTrack?.id ?? '', ...state.queue.map(t => t.id)].filter(Boolean);
+    const recs = await getRecommendations(seed, excludeIds);
+    if (!get().smartShuffle) return;
+    for (const t of recs) {
+      get().addToQueue(t);
+    }
+  } catch {} finally {
+    fetching = false;
+  }
+}
 
 // ── NowPlaying sync ──────────────────────────────────────────────────────────
 

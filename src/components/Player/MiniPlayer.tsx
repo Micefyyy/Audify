@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useHaptics } from '../../hooks/useHaptics';
 
 export default function MiniPlayer() {
-  const { currentTrack, isPlaying, progress, pause, resume, skipNext } = usePlayerStore();
+  const { currentTrack, isPlaying, progress, error, pause, resume, skipNext } = usePlayerStore();
   const haptics = useHaptics();
   if (!currentTrack) return null;
 
@@ -34,7 +34,9 @@ export default function MiniPlayer() {
         />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-semibold truncate">{currentTrack.title}</p>
-          <p className="text-text-secondary text-xs truncate">{currentTrack.artist}</p>
+          <p className="text-text-secondary text-xs truncate">
+            {error || currentTrack.artist}
+          </p>
         </div>
         <div className="flex items-center gap-1">
           <button
