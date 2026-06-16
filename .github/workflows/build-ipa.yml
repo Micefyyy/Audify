@@ -1,31 +1,47 @@
 name: Build IPA
-on: [push, workflow_dispatch]
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+
       - run: npm ci
       - run: npm run build
-      - run: npx cap add ios
+      - run: npx cap add ios --skip-download
+        continue-on-error: true
       - run: npx cap sync ios
-      - run: |
-          cd ios/App
-          xcodebuild archive \
-            -workspace App.xcworkspace \
+
+      - name: Build iOS app
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace \
             -scheme App \
-            -sdk iphoneos \
             -configuration Release \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
-            CODE_SIGNING_ALLOWED=NO
-          mkdir -p $RUNNER_TEMP/Payload
-          cp -r "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" "$RUNNER_TEMP/Payload/"
-          cd $RUNNER_TEMP
-          zip -r Audify.ipa Payload
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -r Audify.ipa Payload/
+          rm -rf Payload
+
       - uses: actions/upload-artifact@v4
         with:
-          name: Audify.ipa
-          path: ${{ runner.temp }}/Audify.ipa
+          name: Audify-ipa
+          path: Audify.ipa
