@@ -19,8 +19,7 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-      - run: npx cap add ios --skip-download
-        continue-on-error: true
+      - run: npx cap add ios
       - run: npx cap sync ios
 
       - name: Build iOS app
