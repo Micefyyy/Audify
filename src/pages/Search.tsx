@@ -12,13 +12,12 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
+function TrackRow({ track }: { track: Track }) {
   const haptics = useHaptics();
-  const addToQueue = usePlayerStore(s => s.addToQueue);
   return (
     <div className="group flex items-center gap-3 px-5 py-2 hover:bg-white/[0.02] transition-colors">
       <button
-        onClick={() => { haptics.tap(); onPlay(); }}
+        onClick={() => { haptics.tap(); usePlayerStore.getState().play(track); }}
         className="flex items-center gap-3 flex-1 min-w-0 text-left"
       >
         <img src={track.artwork} alt={track.title} className="w-9 h-9 rounded-md object-cover flex-shrink-0" />
@@ -29,7 +28,7 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
       </button>
       <button
-        onClick={(e) => { e.stopPropagation(); haptics.tap(); addToQueue(track); }}
+        onClick={(e) => { e.stopPropagation(); haptics.tap(); usePlayerStore.getState().addToQueue(track); }}
         className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
         title="Add to queue"
       >
@@ -61,7 +60,6 @@ export default function SearchPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const queryRef = useRef(query);
   const inputRef = useRef<HTMLInputElement>(null);
-  const play = usePlayerStore(s => s.play);
 
   queryRef.current = query;
 
@@ -111,10 +109,6 @@ export default function SearchPage() {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [query]);
-
-  function handlePlay(track: Track) {
-    play(track, results);
-  }
 
   function handleBrowse(genre: string) {
     setQuery(genre);
@@ -188,7 +182,7 @@ export default function SearchPage() {
         {!loading && !error && results.length > 0 && (
           <div>
             {results.map(track => (
-              <TrackRow key={track.id} track={track} onPlay={() => handlePlay(track)} />
+              <TrackRow key={track.id} track={track} />
             ))}
           </div>
         )}

@@ -14,21 +14,18 @@ function formatDuration(seconds: number): string {
 
 function TrackRow({
   track,
-  onPlay,
   onRemove,
 }: {
   track: Track;
-  onPlay: () => void;
   onRemove: () => void;
 }) {
   const haptics = useHaptics();
   const [confirming, setConfirming] = useState(false);
-  const addToQueue = usePlayerStore(s => s.addToQueue);
 
   return (
     <div className="group flex items-center gap-3 px-5 py-2 hover:bg-white/[0.02] transition-colors">
       <button
-        onClick={() => { haptics.tap(); onPlay(); }}
+        onClick={() => { haptics.tap(); usePlayerStore.getState().play(track); }}
         className="flex items-center gap-3 flex-1 min-w-0 text-left"
       >
         <img src={track.artwork} alt={track.title} className="w-9 h-9 rounded-md object-cover flex-shrink-0" />
@@ -40,7 +37,7 @@ function TrackRow({
       </button>
 
       <button
-        onClick={(e) => { e.stopPropagation(); haptics.tap(); addToQueue(track); }}
+        onClick={(e) => { e.stopPropagation(); haptics.tap(); usePlayerStore.getState().addToQueue(track); }}
         className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted opacity-0 group-hover:opacity-100 hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
         title="Add to queue"
       >
@@ -238,7 +235,6 @@ export default function PlaylistDetail() {
             <TrackRow
               key={track.id}
               track={track}
-              onPlay={() => handlePlayTrack(track)}
               onRemove={() => handleRemoveTrack(track.id)}
             />
           ))
