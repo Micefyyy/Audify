@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Search as SearchIcon, ListPlus } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { searchTracks, preresolveTracks } from '../services/audioService';
@@ -14,7 +14,6 @@ function formatDuration(seconds: number): string {
 
 function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
   const haptics = useHaptics();
-  const navigate = useNavigate();
   const addToQueue = usePlayerStore(s => s.addToQueue);
   return (
     <div className="group flex items-center gap-3 px-5 py-2 hover:bg-white/[0.02] transition-colors">
@@ -25,12 +24,7 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
         <img src={track.artwork} alt={track.title} className="w-9 h-9 rounded-md object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
-          <button
-            onClick={e => { e.stopPropagation(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
-            className="text-text-secondary text-xs truncate hover:text-accent transition-colors text-left block w-full"
-          >
-            {track.artist}
-          </button>
+          <p className="text-text-secondary text-xs truncate">{track.artist}</p>
         </div>
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
       </button>
