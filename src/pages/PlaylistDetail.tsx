@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Pencil, Check, X, Play, Shuffle, ListPlus, ExternalLink, Music } from 'lucide-react';
+import { ArrowLeft, Trash2, Pencil, Check, X, Play, Shuffle, ListPlus, Music } from 'lucide-react';
 import { useLibraryStore } from '../store/libraryStore';
 import { usePlayerStore } from '../store/playerStore';
 import { useHaptics } from '../hooks/useHaptics';
@@ -22,7 +22,6 @@ function TrackRow({
   onRemove: () => void;
 }) {
   const haptics = useHaptics();
-  const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
   const addToQueue = usePlayerStore(s => s.addToQueue);
 
@@ -38,14 +37,6 @@ function TrackRow({
           <p className="text-text-secondary text-xs truncate">{track.artist}</p>
         </div>
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
-      </button>
-
-      <button
-        onClick={(e) => { e.stopPropagation(); haptics.tap(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
-        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
-        title="View artist"
-      >
-        <ExternalLink size={11} />
       </button>
 
       <button

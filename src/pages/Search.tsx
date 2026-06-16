@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, ListPlus, ExternalLink } from 'lucide-react';
+import { Search as SearchIcon, ListPlus } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { searchTracks, preresolveTracks } from '../services/audioService';
 import { useHaptics } from '../hooks/useHaptics';
@@ -25,16 +25,14 @@ function TrackRow({ track, onPlay }: { track: Track; onPlay: () => void }) {
         <img src={track.artwork} alt={track.title} className="w-9 h-9 rounded-md object-cover flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{track.title}</p>
-          <p className="text-text-secondary text-xs truncate">{track.artist}</p>
+          <button
+            onClick={e => { e.stopPropagation(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
+            className="text-text-secondary text-xs truncate hover:text-accent transition-colors text-left block w-full"
+          >
+            {track.artist}
+          </button>
         </div>
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
-      </button>
-      <button
-        onClick={(e) => { e.stopPropagation(); haptics.tap(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
-        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
-        title="View artist"
-      >
-        <ExternalLink size={11} />
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); haptics.tap(); addToQueue(track); }}

@@ -2,10 +2,12 @@ import { Play, Pause, SkipForward } from 'lucide-react';
 import { usePlayerStore } from '../../store/playerStore';
 import { motion } from 'framer-motion';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useNavigate } from 'react-router-dom';
 
 export default function MiniPlayer() {
   const { currentTrack, isPlaying, progress, error, pause, resume, skipNext } = usePlayerStore();
   const haptics = useHaptics();
+  const navigate = useNavigate();
   if (!currentTrack) return null;
 
   const handlePlayPause = (e: React.MouseEvent) => {
@@ -33,9 +35,12 @@ export default function MiniPlayer() {
         />
         <div className="flex-1 min-w-0">
           <p className="text-text-primary text-sm font-medium truncate">{currentTrack.title}</p>
-          <p className="text-text-secondary text-[11px] truncate">
+          <button
+            onClick={() => navigate(`/artist/${encodeURIComponent(currentTrack.artist)}`)}
+            className="text-text-secondary text-[11px] truncate hover:text-accent transition-colors text-left"
+          >
             {error || currentTrack.artist}
-          </p>
+          </button>
         </div>
         <div className="flex items-center gap-0.5">
           <button

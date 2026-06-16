@@ -78,23 +78,17 @@ export default function HomePage() {
             <h2 className="text-sm font-semibold text-text-primary px-5 mb-2.5">Recently played</h2>
             <div className="flex gap-2 overflow-x-auto overscroll-x-contain px-5 pb-1 scrollbar-none">
               {recentlyPlayed.map(track => (
-                <div key={track.id} className="flex-shrink-0 w-28">
-                  <button
-                    onClick={() => { haptics.tap(); usePlayerStore.getState().play(track, recentlyPlayed); }}
-                    className="w-full"
-                  >
-                    <div className="aspect-square rounded-lg overflow-hidden bg-bg-surface mb-1.5">
-                      <img src={track.artwork} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <p className="text-text-primary text-xs font-medium truncate text-left leading-tight">{track.title}</p>
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
-                    className="text-text-muted text-[10px] truncate hover:text-accent transition-colors text-left w-full mt-0.5"
-                  >
-                    {track.artist}
-                  </button>
-                </div>
+                <button
+                  key={track.id}
+                  onClick={() => { haptics.tap(); usePlayerStore.getState().play(track, recentlyPlayed); }}
+                  className="flex-shrink-0 w-28"
+                >
+                  <div className="aspect-square rounded-lg overflow-hidden bg-bg-surface mb-1.5">
+                    <img src={track.artwork} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-text-primary text-xs font-medium truncate text-left leading-tight">{track.title}</p>
+                  <p className="text-text-muted text-[10px] truncate text-left">{track.artist}</p>
+                </button>
               ))}
             </div>
           </div>

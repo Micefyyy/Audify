@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Music, Heart, Download, Check, X, Trash2, ListPlus, ExternalLink } from 'lucide-react';
+import { Plus, Music, Heart, Download, Check, X, Trash2, ListPlus } from 'lucide-react';
 import type { Track } from '../store/playerStore';
 import type { Playlist } from '../store/libraryStore';
 import { useLibraryStore } from '../store/libraryStore';
@@ -16,7 +16,6 @@ function formatDuration(seconds: number): string {
 
 function TrackRow({ track, onPlay, onRemove }: { track: Track; onPlay: () => void; onRemove?: () => void }) {
   const haptics = useHaptics();
-  const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
   const addToQueue = usePlayerStore(s => s.addToQueue);
 
@@ -32,14 +31,6 @@ function TrackRow({ track, onPlay, onRemove }: { track: Track; onPlay: () => voi
           <p className="text-text-secondary text-xs truncate">{track.artist}</p>
         </div>
         <span className="text-text-muted text-[11px] flex-shrink-0">{formatDuration(track.duration)}</span>
-      </button>
-
-      <button
-        onClick={(e) => { e.stopPropagation(); haptics.tap(); navigate(`/artist/${encodeURIComponent(track.artist)}`); }}
-        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:bg-white/[0.04] active:scale-90 transition-all flex-shrink-0"
-        title="View artist"
-      >
-        <ExternalLink size={11} />
       </button>
 
       <button
