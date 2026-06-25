@@ -19,7 +19,7 @@ export default function Layout() {
   const theme = useSettingsStore(s => s.theme);
 
   return (
-    <div className={`flex flex-col h-full ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
+    <div className={`flex flex-col h-full theme-${theme}`}>
       <main className="flex-1 overflow-hidden">
         <Outlet />
       </main>

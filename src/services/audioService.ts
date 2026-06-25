@@ -1,16 +1,9 @@
 import type { Track } from '../store/playerStore';
+import type { Album, Artist } from '../store/libraryStore';
 import { useSettingsStore, DEFAULT_PIPED_INSTANCE } from '../store/settingsStore';
 
-// Piped is a proxy frontend for YouTube. The search API works fine, but the
-// stream URLs it returns are direct YouTube videoplayback URLs that require
-// specific HTTP headers (Referer, cookies) to serve content. The browser's
-// <audio> element cannot set those headers, so we proxy the stream through
-// the Piped instance itself, which adds the necessary headers on our behalf.
-//
-// Known working instances as of mid 2026 are listed below in order of
-// reliability. Users can also supply a custom instance in Settings.
 const INSTANCES = [
-  DEFAULT_PIPED_INSTANCE, // https://api.piped.private.coffee
+  DEFAULT_PIPED_INSTANCE,
   'https://pipedapi.kavin.rocks',
   'https://pipedapi.tokhmi.xyz',
 ];
@@ -22,10 +15,9 @@ const BITRATE_LIMITS: Record<string, number> = {
   lossless: Infinity,
 };
 
-// ── Piped API response types ────────────────────────────────────────────────
-
 interface PipedSearchResponse {
   items: PipedSearchItem[];
+  suggestion?: string;
 }
 
 interface PipedSearchItem {
@@ -33,7 +25,13 @@ interface PipedSearchItem {
   title: string;
   thumbnail: string;
   uploaderName: string;
+  uploaderUrl?: string;
   duration: number;
+  type?: string;
+  uploaderAvatar?: string;
+  albumArt?: string;
+  albumTitle?: string;
+  year?: string;
 }
 
 interface PipedStreamResponse {
@@ -51,8 +49,6 @@ interface PipedVideoStream {
   quality: string;
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
 function extractVideoId(url: string): string | null {
   try {
     const u = new URL(url, INSTANCES[0]);
@@ -62,7 +58,22 @@ function extractVideoId(url: string): string | null {
   }
 }
 
-function mapSearchItem(item: PipedSearchItem): Track {
+function extractPlaylistId(url: string): string | null {
+  try {
+    const u = new URL(url, INSTANCES[0]);
+    return u.searchParams.get('list');
+  } catch {
+    return null;
+  }
+}
+
+function extractChannelId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/\/channel\/([^/?]+)/);
+  return match ? match[1] : null;
+}
+
+export function mapSearchItem(item: PipedSearchItem): Track {
   const videoId = extractVideoId(item.url) ?? '';
   const artwork = videoId
     ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
@@ -71,7 +82,7 @@ function mapSearchItem(item: PipedSearchItem): Track {
     id: videoId,
     title: item.title,
     artist: item.uploaderName,
-    album: '',
+    album: item.albumTitle || '',
     artwork,
     audioUrl: `piped:${videoId}`,
     duration: item.duration ?? 0,
@@ -79,7 +90,29 @@ function mapSearchItem(item: PipedSearchItem): Track {
   };
 }
 
-// ── Pre-resolution cache (for synchronous playback on iOS) ─────────────────
+function mapToAlbum(item: PipedSearchItem): Album {
+  const videoId = extractVideoId(item.url) ?? '';
+  const artwork = item.thumbnail || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '');
+  return {
+    id: item.url || videoId,
+    title: item.title,
+    artist: item.uploaderName,
+    artwork,
+    year: item.year,
+    tracks: [],
+  };
+}
+
+function mapToArtist(item: PipedSearchItem): Artist {
+  const channelId = extractChannelId(item.uploaderUrl ?? item.url) ?? '';
+  return {
+    id: channelId || item.uploaderName,
+    name: item.uploaderName,
+    thumbnail: item.uploaderAvatar || item.thumbnail || '',
+    bio: undefined,
+    albumCount: undefined,
+  };
+}
 
 const streamCache = new Map<string, string>();
 
@@ -112,8 +145,6 @@ export function clearStreamCache(): void {
   streamCache.clear();
 }
 
-// ── Instance selection ──────────────────────────────────────────────────────
-
 function getBases(): string[] {
   const settings = useSettingsStore.getState();
   const custom = settings.pipedInstance?.trim();
@@ -138,23 +169,18 @@ async function fetchFromInstances<T>(path: string): Promise<{ data: T; base: str
   throw new Error(`All Piped instances failed:\n${errors.join('\n')}`);
 }
 
-// ── Proxy helpers ───────────────────────────────────────────────────────────
-
-/** Wrap a YouTube stream URL so it goes through the Piped instance's proxy. */
 function proxyUrl(base: string, rawUrl: string): string {
-  // If the URL is relative, resolve it against the instance
   if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
     const prefix = rawUrl.startsWith('/') ? '' : '/';
     return `${base}${prefix}${rawUrl}`;
   }
-  // Raw YouTube videoplayback/googlevideo URLs need proxying
   if (/googlevideo\.com|youtube\.com|ytimg\.com/.test(rawUrl)) {
     return `${base}/proxy/media?url=${encodeURIComponent(rawUrl)}`;
   }
   return rawUrl;
 }
 
-// ── Public API ──────────────────────────────────────────────────────────────
+// ── Search ──────────────────────────────────────────────────────────────────
 
 export async function searchTracks(query: string): Promise<Track[]> {
   const path = `/search?q=${encodeURIComponent(query)}&filter=music_songs`;
@@ -162,11 +188,101 @@ export async function searchTracks(query: string): Promise<Track[]> {
   return (data.items ?? []).map(mapSearchItem);
 }
 
+export async function searchAlbums(query: string): Promise<Album[]> {
+  const path = `/search?q=${encodeURIComponent(query)}&filter=music_albums`;
+  const { data } = await fetchFromInstances<PipedSearchResponse>(path);
+  return (data.items ?? []).map(mapToAlbum);
+}
+
+export async function searchArtists(query: string): Promise<Artist[]> {
+  const path = `/search?q=${encodeURIComponent(query)}&filter=music_artists`;
+  const { data } = await fetchFromInstances<PipedSearchResponse>(path);
+  return (data.items ?? []).map(mapToArtist);
+}
+
+// ── Album tracks ────────────────────────────────────────────────────────────
+
+export async function getAlbumTracks(albumUrl: string): Promise<Track[]> {
+  // Piped playlist/album endpoint
+  const playlistId = extractPlaylistId(albumUrl);
+  if (!playlistId) {
+    // If it's a direct video URL, treat as single track
+    const videoId = extractVideoId(albumUrl);
+    if (videoId) {
+      const track: Track = {
+        id: videoId,
+        title: 'Unknown Track',
+        artist: 'Unknown Artist',
+        album: '',
+        artwork: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        audioUrl: `piped:${videoId}`,
+        duration: 0,
+        source: 'stream',
+      };
+      return [track];
+    }
+    return [];
+  }
+  try {
+    const path = `/playlists/${encodeURIComponent(playlistId)}`;
+    const { data } = await fetchFromInstances<{ title?: string; thumbnailUrl?: string; relatedStreams?: PipedSearchItem[] }>(path);
+    return (data.relatedStreams ?? []).map(mapSearchItem);
+  } catch {
+    return [];
+  }
+}
+
+// ── Artist info ─────────────────────────────────────────────────────────────
+
+export async function getArtistInfo(artistName: string): Promise<{ artist: Artist; tracks: Track[]; albums: Album[] }> {
+  const [tracks, albumResults] = await Promise.all([
+    searchTracks(artistName),
+    searchAlbums(artistName),
+  ]);
+
+  const filteredTracks = tracks.filter(t =>
+    t.artist.toLowerCase() === artistName.toLowerCase() ||
+    t.artist.toLowerCase().includes(artistName.toLowerCase())
+  );
+  const finalTracks = filteredTracks.length >= 3 ? filteredTracks : tracks;
+
+  const albums = albumResults.filter(a =>
+    a.artist.toLowerCase() === artistName.toLowerCase() ||
+    a.artist.toLowerCase().includes(artistName.toLowerCase())
+  );
+
+  const artist: Artist = {
+    id: artistName,
+    name: artistName,
+    thumbnail: finalTracks[0]?.artwork || albums[0]?.artwork || '',
+    bio: undefined,
+    albumCount: albums.length,
+  };
+
+  return { artist, tracks: finalTracks, albums };
+}
+
+// ── Similar artists ─────────────────────────────────────────────────────────
+
+export async function getSimilarArtists(artistName: string): Promise<Artist[]> {
+  try {
+    const path = `/search?q=${encodeURIComponent(artistName)}&filter=music_artists`;
+    const { data } = await fetchFromInstances<PipedSearchResponse>(path);
+    return (data.items ?? [])
+      .filter(i => i.uploaderName !== artistName)
+      .slice(0, 6)
+      .map(mapToArtist);
+  } catch {
+    return [];
+  }
+}
+
+// ── Stream resolution ───────────────────────────────────────────────────────
+
 export async function getStreamUrl(videoId: string): Promise<string> {
   const path = `/streams/${encodeURIComponent(videoId)}`;
   const { data, base } = await fetchFromInstances<PipedStreamResponse>(path);
 
-  // Prefer audio streams
   const audioStreams = data.audioStreams ?? [];
   if (audioStreams.length > 0) {
     const quality = useSettingsStore.getState().audioQuality;
@@ -178,16 +294,12 @@ export async function getStreamUrl(videoId: string): Promise<string> {
     return proxyUrl(base, best.url);
   }
 
-  // Fallback: use a video stream as audio source
   const videoStreams = data.videoStreams ?? [];
-
-  // Prefer a proxied YouTube videoplayback URL
   const ytStream = videoStreams.find(
     s => s.url.includes('googlevideo.com') || s.url.includes('videoplayback')
   );
   if (ytStream) return proxyUrl(base, ytStream.url);
 
-  // Last resort — try any video stream
   if (videoStreams.length > 0) {
     return videoStreams[0].url;
   }
@@ -229,9 +341,7 @@ export async function getRecommendations(seed: Track, excludeIds: string[]): Pro
           if (results.length >= 5) break;
         }
       }
-    } catch {
-      // skip failed queries
-    }
+    } catch {}
   }
 
   return results;

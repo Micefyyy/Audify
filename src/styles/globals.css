@@ -47,6 +47,90 @@
     --error:      #DC3545;
   }
 
+  /* ── Theme: green ────────────────────────────────────────────────────── */
+  .theme-green {
+    --bg-base:    #0C0C0C;
+    --bg-surface: #121A14;
+    --bg-elevated: #1A261E;
+    --bg-overlay: #223328;
+    --text-primary:   #F5F5F5;
+    --text-secondary: #9E9E9E;
+    --text-muted:     #555555;
+    --accent:     #1DB954;
+    --accent-hover: #1ED760;
+    --error:      #FF453A;
+  }
+
+  /* ── Theme: aqua ─────────────────────────────────────────────────────── */
+  .theme-aqua {
+    --bg-base:    #0C0C0C;
+    --bg-surface: #111A1E;
+    --bg-elevated: #1A2428;
+    --bg-overlay: #223038;
+    --text-primary:   #F5F5F5;
+    --text-secondary: #9E9E9E;
+    --text-muted:     #555555;
+    --accent:     #00BCD4;
+    --accent-hover: #26C6DA;
+    --error:      #FF453A;
+  }
+
+  /* ── Theme: mint ─────────────────────────────────────────────────────── */
+  .theme-mint {
+    --bg-base:    #0C0C0C;
+    --bg-surface: #111C18;
+    --bg-elevated: #1A2822;
+    --bg-overlay: #22352E;
+    --text-primary:   #F5F5F5;
+    --text-secondary: #9E9E9E;
+    --text-muted:     #555555;
+    --accent:     #00E5A0;
+    --accent-hover: #33EAB7;
+    --error:      #FF453A;
+  }
+
+  /* ── Theme: orange ───────────────────────────────────────────────────── */
+  .theme-orange {
+    --bg-base:    #0C0C0C;
+    --bg-surface: #1A1510;
+    --bg-elevated: #241E16;
+    --bg-overlay: #2E281E;
+    --text-primary:   #F5F5F5;
+    --text-secondary: #9E9E9E;
+    --text-muted:     #555555;
+    --accent:     #FF9800;
+    --accent-hover: #FFA726;
+    --error:      #FF453A;
+  }
+
+  /* ── Theme: red ──────────────────────────────────────────────────────── */
+  .theme-red {
+    --bg-base:    #0C0C0C;
+    --bg-surface: #1A1112;
+    --bg-elevated: #241A1B;
+    --bg-overlay: #2E2324;
+    --text-primary:   #F5F5F5;
+    --text-secondary: #9E9E9E;
+    --text-muted:     #555555;
+    --accent:     #E53935;
+    --accent-hover: #EF5350;
+    --error:      #FF453A;
+  }
+
+  /* ── Theme: violet ───────────────────────────────────────────────────── */
+  .theme-violet {
+    --bg-base:    #0C0C0C;
+    --bg-surface: #17101C;
+    --bg-elevated: #211A26;
+    --bg-overlay: #2B2430;
+    --text-primary:   #F5F5F5;
+    --text-secondary: #9E9E9E;
+    --text-muted:     #555555;
+    --accent:     #9C27B0;
+    --accent-hover: #AB47BC;
+    --error:      #FF453A;
+  }
+
   body {
     background-color: var(--bg-base);
     color: var(--text-primary);
@@ -65,5 +149,12 @@
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  .drag-handle {
+    cursor: grab;
+  }
+  .drag-handle:active {
+    cursor: grabbing;
   }
 }

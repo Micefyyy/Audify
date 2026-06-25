@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Music, Heart, Download, Check, X, Trash2, ListPlus } from 'lucide-react';
+import { Plus, Music, Heart, Download, Check, X, Trash2, ListPlus, Disc3, Mic2 } from 'lucide-react';
 import type { Track } from '../store/playerStore';
 import type { Playlist } from '../store/libraryStore';
 import { useLibraryStore } from '../store/libraryStore';
@@ -101,6 +101,8 @@ function PlaylistCard({ playlist, onTap }: { playlist: Playlist; onTap: () => vo
 const tabs = [
   { key: 'playlists', label: 'Playlists', icon: Music },
   { key: 'liked', label: 'Liked', icon: Heart },
+  { key: 'albums', label: 'Albums', icon: Disc3 },
+  { key: 'artists', label: 'Artists', icon: Mic2 },
   { key: 'downloads', label: 'Downloads', icon: Download },
 ] as const;
 
@@ -112,7 +114,7 @@ export default function LibraryPage() {
   const [newName, setNewName] = useState('');
   const navigate = useNavigate();
 
-  const { likedSongs, playlists, createPlaylist, removeLike } = useLibraryStore();
+  const { likedSongs, playlists, likedAlbums, likedArtists, createPlaylist, removeLike } = useLibraryStore();
 
   useEffect(() => {
     if (tab === 'liked') preresolveTracks(likedSongs);
@@ -135,14 +137,14 @@ export default function LibraryPage() {
     <div className="flex flex-col h-full">
       <div className="px-5 pt-14 pb-2">
         <h1 className="text-xl font-bold text-text-primary mb-3">Library</h1>
-        <div className="flex gap-3 border-b border-white/[0.04]">
+        <div className="flex gap-3 border-b border-white/[0.04] overflow-x-auto">
           {tabs.map(t => {
             const active = tab === t.key;
             return (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`relative pb-2 text-sm font-medium transition-colors ${
+                className={`relative pb-2 text-sm font-medium whitespace-nowrap transition-colors ${
                   active ? 'text-accent' : 'text-text-muted hover:text-text-secondary'
                 }`}
               >
@@ -225,6 +227,61 @@ export default function LibraryPage() {
                   track={track}
                   onRemove={() => removeLike(track.id)}
                 />
+              ))
+            )}
+          </div>
+        )}
+
+        {tab === 'albums' && (
+          <div className="px-5">
+            {likedAlbums.length === 0 ? (
+              <div className="py-12 flex flex-col items-center gap-2">
+                <Disc3 size={20} className="text-text-muted/50" />
+                <p className="text-text-muted text-xs">No liked albums</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {likedAlbums.map(album => (
+                  <button
+                    key={album.id}
+                    onClick={() => navigate(`/album/${btoa(album.id)}`)}
+                    className="bg-bg-surface rounded-lg overflow-hidden active:scale-[0.98] transition-transform"
+                  >
+                    <div className="aspect-square overflow-hidden">
+                      <img src={album.artwork} alt={album.title} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                    <div className="p-2 text-left">
+                      <p className="text-text-primary text-xs font-medium truncate">{album.title}</p>
+                      <p className="text-text-secondary text-[10px] truncate">{album.artist}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'artists' && (
+          <div>
+            {likedArtists.length === 0 ? (
+              <div className="py-12 flex flex-col items-center gap-2">
+                <Mic2 size={20} className="text-text-muted/50" />
+                <p className="text-text-muted text-xs">No liked artists</p>
+              </div>
+            ) : (
+              likedArtists.map(artist => (
+                <button
+                  key={artist.id}
+                  onClick={() => navigate(`/artist/${encodeURIComponent(artist.name)}`)}
+                  className="flex items-center gap-3 px-5 py-2 w-full hover:bg-white/[0.02] transition-colors active:scale-[0.99]"
+                >
+                  <img
+                    src={artist.thumbnail}
+                    alt={artist.name}
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                  />
+                  <p className="text-text-primary text-sm font-medium truncate text-left">{artist.name}</p>
+                </button>
               ))
             )}
           </div>

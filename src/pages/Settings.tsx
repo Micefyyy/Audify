@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useSettingsStore, DEFAULT_PIPED_INSTANCE } from '../store/settingsStore';
-import type { AudioQuality, Theme } from '../store/settingsStore';
-import { Moon, Sun } from 'lucide-react';
+import { useSettingsStore, DEFAULT_PIPED_INSTANCE, THEMES } from '../store/settingsStore';
+import type { AudioQuality, ThemeName } from '../store/settingsStore';
+import { Check } from 'lucide-react';
 
 const qualityLabels: Record<AudioQuality, string> = {
   low: 'Low',
@@ -9,6 +9,8 @@ const qualityLabels: Record<AudioQuality, string> = {
   high: 'High',
   lossless: 'Lossless',
 };
+
+const themeNames: ThemeName[] = ['dark', 'light', 'green', 'aqua', 'mint', 'orange', 'red', 'violet'];
 
 export default function SettingsPage() {
   const {
@@ -22,25 +24,44 @@ export default function SettingsPage() {
 
   const [qualityOpen, setQualityOpen] = useState(false);
 
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
-
   return (
     <div className="px-5 pt-14 pb-6 space-y-6">
       <h1 className="text-xl font-bold text-text-primary">Settings</h1>
 
-      {/* ── Theme ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between py-3 border-b border-white/[0.04]">
-        <span className="text-text-primary text-sm">Appearance</span>
-        <button
-          onClick={toggleTheme}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-surface text-text-secondary text-xs font-medium active:scale-95 transition-transform"
-        >
-          {theme === 'dark' ? (
-            <><Sun size={14} /> Light</>
-          ) : (
-            <><Moon size={14} /> Dark</>
-          )}
-        </button>
+      {/* ── Appearance ───────────────────────────────────────────────────── */}
+      <div className="py-3 border-b border-white/[0.04] space-y-3">
+        <span className="text-text-primary text-sm font-medium">Appearance</span>
+        <div className="grid grid-cols-4 gap-4">
+          {themeNames.map(name => {
+            const t = THEMES[name];
+            const selected = theme === name;
+            return (
+              <button
+                key={name}
+                onClick={() => setTheme(name)}
+                className="flex flex-col items-center gap-2 group"
+              >
+                <div
+                  className={`relative w-10 h-10 rounded-full transition-all ${
+                    selected
+                      ? 'ring-2 ring-white ring-offset-2 ring-offset-[var(--bg-base)] scale-105'
+                      : 'group-hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: t.accent }}
+                >
+                  {selected && (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <Check size={16} className="text-white" strokeWidth={3} />
+                    </span>
+                  )}
+                </div>
+                <span className={`text-xs ${selected ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
+                  {t.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Audio Quality ────────────────────────────────────────────────── */}

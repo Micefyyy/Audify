@@ -1,24 +1,25 @@
 import { create } from 'zustand';
-import { Howl } from 'howler';
+import { Howl, Howler } from 'howler';
 import { resolveTrack, getCachedTrack, preresolveTrack, getRecommendations } from '../services/audioService';
 import { fetchLyrics } from '../services/lyricsService';
 import { isDownloaded, getLocalTrackUri } from '../services/downloadService';
 import { updateNowPlaying, clearNowPlaying } from '../services/nowPlayingService';
+import { useSettingsStore } from '../store/settingsStore';
 
 export interface Track {
   id: string;
   title: string;
   artist: string;
   album: string;
-  artwork: string;       // URL
-  audioUrl: string;      // stream URL
-  duration: number;      // seconds
+  artwork: string;
+  audioUrl: string;
+  duration: number;
   lyrics?: LyricLine[];
   source?: 'local' | 'stream' | 'imported';
 }
 
 export interface LyricLine {
-  time: number;   // seconds
+  time: number;
   text: string;
 }
 
@@ -27,8 +28,8 @@ interface PlayerState {
   queue: Track[];
   queueIndex: number;
   isPlaying: boolean;
-  progress: number;        // 0–1
-  volume: number;          // 0–1
+  progress: number;
+  volume: number;
   shuffle: boolean;
   smartShuffle: boolean;
   repeat: 'none' | 'one' | 'all';
@@ -37,7 +38,6 @@ interface PlayerState {
   error: string;
   recentlyPlayed: Track[];
 
-  // Actions
   play: (track: Track, queue?: Track[]) => void;
   pause: () => void;
   resume: () => void;
@@ -55,12 +55,99 @@ interface PlayerState {
   reorderQueue: (from: number, to: number) => void;
 }
 
+// ── Equalizer ───────────────────────────────────────────────────────────────
+
+const EQ_PRESETS: Record<string, number[]> = {
+  Flat:       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  Pop:        [-1, 2, 4, 5, 3, 0, -1, -1, -1, -1],
+  Rock:       [5, 3, -2, -4, -2, 2, 5, 6, 6, 6],
+  Jazz:       [3, 2, 0, 2, -1, -1, 0, 1, 2, 3],
+  Classical:  [4, 3, 2, 1, -1, -1, 0, 2, 3, 4],
+  'Hip-Hop':  [5, 4, 1, 3, -1, -1, 1, -1, 2, 3],
+  Electronic: [5, 4, 2, 0, -2, 0, 2, 4, 5, 5],
+  Acoustic:   [4, 3, 2, 1, 1, -1, -1, 0, 2, 3],
+};
+
+let eqFilters: BiquadFilterNode[] | null = null;
+
+function getEqFilters(): BiquadFilterNode[] {
+  if (eqFilters) return eqFilters;
+  const ctx = Howler.ctx;
+  if (!ctx) return [];
+
+  const frequencies = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  eqFilters = frequencies.map((freq, i) => {
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'peaking';
+    filter.frequency.value = freq;
+    filter.Q.value = 1.4;
+    filter.gain.value = 0;
+    return filter;
+  });
+
+  // Chain: masterGain -> filters -> destination
+  const masterGain = Howler.masterGain;
+  if (masterGain) {
+    let lastNode: AudioNode = masterGain;
+    for (const filter of eqFilters) {
+      lastNode.connect(filter);
+      lastNode = filter;
+    }
+    lastNode.connect(ctx.destination);
+  }
+
+  return eqFilters;
+}
+
+export function applyEqPreset(presetName: string): void {
+  const preset = EQ_PRESETS[presetName];
+  if (!preset) return;
+  const filters = getEqFilters();
+  if (filters.length === 0) return;
+  preset.forEach((gain, i) => {
+    if (filters[i]) {
+      filters[i].gain.value = gain;
+    }
+  });
+}
+
+// ── Crossfade helper ────────────────────────────────────────────────────────
+
+function crossfadeHowl(
+  oldHowl: Howl | null,
+  newHowl: Howl,
+  duration: number,
+) {
+  if (!oldHowl || duration <= 0) {
+    newHowl.play();
+    return;
+  }
+
+  const oldVol = oldHowl.volume();
+  // Fade out old
+  oldHowl.fade(oldVol, 0, duration * 1000);
+  oldHowl.once('fade', () => {
+    oldHowl.pause();
+    oldHowl.volume(oldVol); // restore for next use
+  });
+
+  // Fade in new
+  newHowl.volume(0);
+  newHowl.play();
+  newHowl.fade(0, oldVol, duration * 1000);
+}
+
+// ── Init Howl ───────────────────────────────────────────────────────────────
+
 function initHowl(
   set: (partial: Partial<PlayerState> | ((s: PlayerState) => Partial<PlayerState>)) => void,
   get: () => PlayerState,
   resolved: Track,
 ) {
-  const { volume } = get();
+  const { volume, howl: oldHowl } = get();
+  const crossfadeDuration = useSettingsStore.getState().crossfadeDuration;
+  const eqPreset = useSettingsStore.getState().equalizerPreset;
+
   const newHowl = new Howl({
     src: [resolved.audioUrl],
     format: ['mp4', 'aac', 'webm'],
@@ -80,6 +167,8 @@ function initHowl(
     },
     onplay: () => {
       set({ isLoading: false, isPlaying: true });
+      // Apply EQ preset on each new track
+      applyEqPreset(eqPreset);
       const tick = () => {
         const h = get().howl;
         if (!h) return;
@@ -97,7 +186,12 @@ function initHowl(
     howl: newHowl,
     isLoading: false,
   });
-  newHowl.play();
+
+  if (crossfadeDuration > 0 && oldHowl) {
+    crossfadeHowl(oldHowl, newHowl, crossfadeDuration);
+  } else {
+    newHowl.play();
+  }
 
   fetchLyrics(resolved.title, resolved.artist).then(lyrics => {
     if (!lyrics) return;
@@ -107,6 +201,8 @@ function initHowl(
     }
   });
 }
+
+// ── Store ───────────────────────────────────────────────────────────────────
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTrack: null,

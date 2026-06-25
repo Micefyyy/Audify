@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { Music, Play } from 'lucide-react';
+import { Music, Play, Disc3, Users } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
+import { useLibraryStore } from '../store/libraryStore';
 import { useHaptics } from '../hooks/useHaptics';
 
 const greeting = () => {
@@ -30,6 +31,10 @@ export default function HomePage() {
   const navigate = useNavigate();
   const haptics = useHaptics();
   const { currentTrack, isPlaying, recentlyPlayed, pause, resume } = usePlayerStore();
+  const { likedAlbums, likedArtists } = useLibraryStore();
+
+  const visibleAlbums = likedAlbums.slice(0, 6);
+  const visibleArtists = likedArtists.slice(0, 6);
 
   return (
     <div className="flex flex-col h-full">
@@ -94,6 +99,47 @@ export default function HomePage() {
           </div>
         )}
 
+        {visibleAlbums.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-text-primary px-5 mb-2.5">Your Albums</h2>
+            <div className="flex gap-2 overflow-x-auto overscroll-x-contain px-5 pb-1 scrollbar-none">
+              {visibleAlbums.map(album => (
+                <button
+                  key={album.id}
+                  onClick={() => { haptics.tap(); navigate(`/album/${btoa(album.id)}`); }}
+                  className="flex-shrink-0 w-28"
+                >
+                  <div className="aspect-square rounded-lg overflow-hidden bg-bg-surface mb-1.5">
+                    <img src={album.artwork} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-text-primary text-xs font-medium truncate text-left leading-tight">{album.title}</p>
+                  <p className="text-text-muted text-[10px] truncate text-left">{album.artist}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {visibleArtists.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-text-primary px-5 mb-2.5">Your Artists</h2>
+            <div className="flex gap-2 overflow-x-auto overscroll-x-contain px-5 pb-1 scrollbar-none">
+              {visibleArtists.map(artist => (
+                <button
+                  key={artist.id}
+                  onClick={() => { haptics.tap(); navigate(`/artist/${encodeURIComponent(artist.name)}`); }}
+                  className="flex-shrink-0 w-20"
+                >
+                  <div className="w-20 h-20 rounded-full overflow-hidden bg-bg-surface mb-1.5">
+                    <img src={artist.thumbnail} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-text-primary text-xs font-medium truncate text-left leading-tight">{artist.name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="px-5 mb-4">
           <h2 className="text-sm font-semibold text-text-primary mb-2.5">Browse</h2>
           <div className="grid grid-cols-2 gap-2">
@@ -110,17 +156,32 @@ export default function HomePage() {
         </div>
 
         {recentlyPlayed.length === 0 && (
-          <div className="px-5 py-12 flex flex-col items-center gap-3">
-            <Music size={28} className="text-text-muted/50" />
-            <p className="text-text-muted text-xs text-center leading-relaxed">
-              Search for songs to get started
-            </p>
-            <button
-              onClick={() => navigate('/search')}
-              className="px-4 py-2 bg-accent/10 text-accent rounded-lg text-xs font-medium active:scale-95 transition-transform"
-            >
-              Start Exploring
-            </button>
+          <div className="px-5 py-12 flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
+              <Music size={28} className="text-accent" />
+            </div>
+            <div className="text-center">
+              <p className="text-text-primary text-sm font-semibold mb-1">Welcome to Audify</p>
+              <p className="text-text-muted text-xs leading-relaxed">
+                Start listening to your favorite music
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate('/search')}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-accent text-white rounded-full text-xs font-medium active:scale-95 transition-transform"
+              >
+                <Play size={12} fill="currentColor" />
+                Start Exploring
+              </button>
+              <button
+                onClick={() => navigate('/import')}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-bg-surface text-text-primary rounded-full text-xs font-medium border border-white/5 active:scale-95 transition-transform"
+              >
+                <Disc3 size={12} />
+                Import Playlist
+              </button>
+            </div>
           </div>
         )}
       </div>

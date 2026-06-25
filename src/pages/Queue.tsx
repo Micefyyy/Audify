@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, ListMusic } from 'lucide-react';
+import { ArrowLeft, Trash2, ListMusic, GripVertical } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
 import { useHaptics } from '../hooks/useHaptics';
+import { useState, useRef, useCallback } from 'react';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -12,9 +13,57 @@ function formatDuration(seconds: number): string {
 export default function QueuePage() {
   const navigate = useNavigate();
   const haptics = useHaptics();
-  const { currentTrack, queue, queueIndex, play, removeFromQueue, clearQueue } = usePlayerStore();
+  const { currentTrack, queue, queueIndex, play, removeFromQueue, clearQueue, reorderQueue } = usePlayerStore();
 
   const upcoming = queue.slice(queueIndex + 1);
+
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const startYRef = useRef(0);
+  const dragIdxRef = useRef<number | null>(null);
+  const overIdxRef = useRef<number | null>(null);
+  const rowHeightRef = useRef(52);
+  const upcomingRef = useRef(upcoming);
+  upcomingRef.current = upcoming;
+
+  const startDrag = useCallback((index: number, e: React.TouchEvent) => {
+    e.preventDefault();
+    startYRef.current = e.touches[0].clientY;
+    dragIdxRef.current = index;
+    overIdxRef.current = index;
+    setDragIndex(index);
+    setOverIndex(index);
+
+    const onMove = (ev: TouchEvent) => {
+      ev.preventDefault();
+      const deltaY = ev.touches[0].clientY - startYRef.current;
+      const offset = Math.round(deltaY / rowHeightRef.current);
+      const len = upcomingRef.current.length;
+      const target = Math.max(0, Math.min(len - 1, dragIdxRef.current! + offset));
+      if (target !== overIdxRef.current) {
+        overIdxRef.current = target;
+        setOverIndex(target);
+      }
+    };
+
+    const onEnd = () => {
+      const from = dragIdxRef.current;
+      const to = overIdxRef.current;
+      if (from !== null && to !== null && from !== to) {
+        reorderQueue(queueIndex + 1 + from, queueIndex + 1 + to);
+        haptics.tap();
+      }
+      dragIdxRef.current = null;
+      overIdxRef.current = null;
+      setDragIndex(null);
+      setOverIndex(null);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+  }, [queueIndex, reorderQueue, haptics]);
 
   return (
     <div className="flex flex-col h-full safe-top">
@@ -66,11 +115,23 @@ export default function QueuePage() {
           <div>
             {upcoming.map((track, i) => {
               const actualIndex = queueIndex + 1 + i;
+              const isDragging = dragIndex === i;
+              const isOver = overIndex === i && dragIndex !== null && dragIndex !== i;
               return (
                 <div
                   key={`${track.id}-${actualIndex}`}
-                  className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/[0.02] transition-colors"
+                  ref={i === 0 ? (el) => { if (el) rowHeightRef.current = el.offsetHeight; } : undefined}
+                  className={`group flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    isDragging ? 'opacity-50 scale-95' : 'hover:bg-white/[0.02]'
+                  } ${isOver ? 'border-t-2 border-accent' : ''}`}
                 >
+                  <div
+                    className="flex items-center justify-center w-5 h-5 flex-shrink-0 text-text-muted cursor-grab active:cursor-grabbing"
+                    style={{ touchAction: 'none' }}
+                    onTouchStart={(e) => startDrag(i, e)}
+                  >
+                    <GripVertical size={14} />
+                  </div>
                   <button
                     onClick={() => { haptics.tap(); play(track, queue); }}
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"

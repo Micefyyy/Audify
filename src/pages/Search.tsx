@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, ListPlus } from 'lucide-react';
 import { usePlayerStore } from '../store/playerStore';
-import { searchTracks, preresolveTracks } from '../services/audioService';
+import { searchTracks, searchAlbums, searchArtists, preresolveTracks } from '../services/audioService';
 import { useHaptics } from '../hooks/useHaptics';
 import type { Track } from '../store/playerStore';
+import type { Album, Artist } from '../store/libraryStore';
+
+type TabKey = 'tracks' | 'albums' | 'artists';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -38,6 +41,38 @@ function TrackRow({ track }: { track: Track }) {
   );
 }
 
+function AlbumRow({ album }: { album: Album }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate(`/album/${btoa(album.id)}`)}
+      className="flex items-center gap-3 px-5 py-2 w-full text-left hover:bg-white/[0.02] transition-colors"
+    >
+      <img src={album.artwork} alt={album.title} className="w-10 h-10 rounded-md object-cover flex-shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-text-primary text-sm font-medium truncate">{album.title}</p>
+        <p className="text-text-secondary text-xs truncate">{album.artist}</p>
+      </div>
+      {album.year && (
+        <span className="text-text-muted text-[11px] bg-bg-surface rounded px-1.5 py-0.5 flex-shrink-0">{album.year}</span>
+      )}
+    </button>
+  );
+}
+
+function ArtistRow({ artist }: { artist: Artist }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate(`/artist/${encodeURIComponent(artist.name)}`)}
+      className="flex items-center gap-3 px-5 py-2 w-full text-left hover:bg-white/[0.02] transition-colors"
+    >
+      <img src={artist.thumbnail} alt={artist.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+      <p className="text-text-primary text-sm font-medium truncate">{artist.name}</p>
+    </button>
+  );
+}
+
 function SkeletonRow() {
   return (
     <div className="flex items-center gap-3 px-5 py-2 animate-pulse">
@@ -50,10 +85,20 @@ function SkeletonRow() {
   );
 }
 
+const tabs: { key: TabKey; label: string }[] = [
+  { key: 'tracks', label: 'Tracks' },
+  { key: 'albums', label: 'Albums' },
+  { key: 'artists', label: 'Artists' },
+];
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [query, setQuery] = useState(searchParams.get('q') || '');
-  const [results, setResults] = useState<Track[]>([]);
+  const [activeTab, setActiveTab] = useState<TabKey>('tracks');
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -74,7 +119,9 @@ export default function SearchPage() {
     if (timerRef.current) clearTimeout(timerRef.current);
 
     if (!query.trim()) {
-      setResults([]);
+      setTracks([]);
+      setAlbums([]);
+      setArtists([]);
       setError(null);
       setLoading(false);
       setSearched(false);
@@ -87,16 +134,24 @@ export default function SearchPage() {
     timerRef.current = setTimeout(async () => {
       const q = query.trim();
       try {
-        const tracks = await searchTracks(q);
+        const [t, a, ar] = await Promise.all([
+          searchTracks(q),
+          searchAlbums(q),
+          searchArtists(q),
+        ]);
         if (queryRef.current === q) {
-          setResults(tracks);
+          setTracks(t);
+          setAlbums(a);
+          setArtists(ar);
           setSearched(true);
-          preresolveTracks(tracks);
+          preresolveTracks(t);
         }
       } catch (err) {
         if (queryRef.current === q) {
           setError(err instanceof Error ? err.message : 'Search failed');
-          setResults([]);
+          setTracks([]);
+          setAlbums([]);
+          setArtists([]);
         }
       } finally {
         if (queryRef.current === q) {
@@ -125,6 +180,13 @@ export default function SearchPage() {
     { label: 'Indie',       bg: 'from-indigo-700/40 to-indigo-900/20' },
     { label: 'Jazz',        bg: 'from-stone-600/40 to-stone-800/20' },
   ];
+
+  const hasResults = tracks.length > 0 || albums.length > 0 || artists.length > 0;
+
+  const activeResults =
+    activeTab === 'tracks' ? tracks :
+    activeTab === 'albums' ? albums :
+    artists;
 
   return (
     <div className="flex flex-col h-full">
@@ -159,8 +221,28 @@ export default function SearchPage() {
           </div>
         )}
 
+        {query.trim() && (
+          <div className="px-5 mb-3 flex gap-1">
+            {tabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  activeTab === tab.key
+                    ? 'bg-white/10 text-text-primary'
+                    : 'text-text-muted hover:text-text-secondary'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading && (
           <div>
+            <SkeletonRow />
+            <SkeletonRow />
             <SkeletonRow />
             <SkeletonRow />
             <SkeletonRow />
@@ -173,17 +255,32 @@ export default function SearchPage() {
           </div>
         )}
 
-        {!loading && !error && searched && results.length === 0 && (
+        {!loading && !error && searched && !hasResults && (
           <div className="px-5 py-12 flex flex-col items-center gap-2">
             <p className="text-text-muted text-xs">No results</p>
           </div>
         )}
 
-        {!loading && !error && results.length > 0 && (
+        {!loading && !error && hasResults && (
           <div>
-            {results.map(track => (
+            {activeTab === 'tracks' && tracks.map(track => (
               <TrackRow key={track.id} track={track} />
             ))}
+            {activeTab === 'albums' && albums.map(album => (
+              <AlbumRow key={album.id} album={album} />
+            ))}
+            {activeTab === 'artists' && artists.map(artist => (
+              <ArtistRow key={artist.id} artist={artist} />
+            ))}
+            {activeTab === 'tracks' && tracks.length === 0 && (
+              <p className="text-text-muted text-xs text-center py-8">No tracks found</p>
+            )}
+            {activeTab === 'albums' && albums.length === 0 && (
+              <p className="text-text-muted text-xs text-center py-8">No albums found</p>
+            )}
+            {activeTab === 'artists' && artists.length === 0 && (
+              <p className="text-text-muted text-xs text-center py-8">No artists found</p>
+            )}
           </div>
         )}
       </div>

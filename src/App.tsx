@@ -6,6 +6,7 @@ import SearchPage from './pages/Search';
 import LibraryPage from './pages/Library';
 import PlaylistDetail from './pages/PlaylistDetail';
 import ArtistPage from './pages/Artist';
+import AlbumPage from './pages/Album';
 import QueuePage from './pages/Queue';
 import NowPlayingPage from './pages/NowPlaying';
 import LyricsPage from './pages/Lyrics';
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/import"  element={<ImportPage />} />
           <Route path="/queue"   element={<QueuePage />} />
           <Route path="/artist/:name" element={<ArtistPage />} />
+          <Route path="/album/:encodedUrl" element={<AlbumPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
         {/* Full-screen overlays (no tab bar) */}
